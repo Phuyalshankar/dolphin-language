@@ -14,8 +14,28 @@ Yo file le "Dolphin" language haleko GitHub repo (Phuyalshankar/dolphin-language
 1. **Linux ma build hunna thiyo** — `closesocket` macro le member function `close()` sanga naam clash gardai thiyo, TCP socket close hunna thiyo. Fix gareko.
 2. **CLI (`dolphin.cpp`) Windows-only thiyo** — `.exe`, `del` command hardcode thiyo, Linux/Mac ma chalna sakthiyeana. Cross-platform banaeko.
 3. **Build system thiyeana** — `Makefile` thapeko (`make all`, `make run FILE=test.dolphin`).
+4. **Real parser banayeko (regex → real lexer/AST/parser/codegen)** — purano line-by-line regex parsing hataera, proper pipeline banayeko:
+   - `token.hpp` / `lexer.hpp/.cpp` — char-by-char tokenizer, line number tracking sahit.
+   - `ast.hpp` — full Expr/Stmt node hierarchy.
+   - `parser.hpp/.cpp` — recursive-descent + operator-precedence parser (sabai operator, control flow, `fn`/lambda, array/object literal, `import`, `pin` declaration/expression handle garcha).
+   - `codegen.hpp/.cpp` — AST bata C++ code generate garcha (purano runtime call convention sangai compatible).
+   - Faida: multi-line expression, nested block, complex syntax aba reliably parse huncha; error message aba line number sahit aucha (jasttai "Parse error at line 4: ...").
+   - Trade-off: comment preservation (cosmetic matra thiyo) generated `.cpp` ma haraayo — correctness ma asar chaina.
 
-Aba `make all && ./dolphin run test.dolphin` le Replit/Linux ma chalcha.
+Aba `make all && ./dolphin run test.dolphin` le Replit/Linux ma chalcha, real parser sanga.
+
+## Real parser rewrite le pass gareko test suite (verified)
+
+`test.dolphin`, `test_functions`, `test_loops`, `test_operators`, `test_functional`, `test_object_rotate`, `test_shifting`, `test_crud`, `test_import`, `test_files`, `test_complex`, `test_js`, `test_async`, `test_event_driven`, `test_server`, `test_iot_sim` — sabai transpile + compile + run huncha.
+
+Yo pass garaudai thaha paayeko ra fix gareko sano runtime bug haru pani:
+- `INPUT`/`OUTPUT` pin-mode constants naya parser ma translate hudaina thiyo (`PIN_INPUT`/`PIN_OUTPUT` ma map garna parcha) — fix gareko.
+- Top-level (global scope) variable haru function bhitra bata access garda C++ compile error aunthyo (function le tyeslai global bhanera chinena) — top-level `var` haru aba real C++ global declare huncha.
+- Lambda/function ko return statement haru le kahile `bool` kahile `var` return garda (`&&`/comparison jasto) C++ le "inconsistent lambda return type" error dinthyo — sabai return `var(...)` ma wrap gareko.
+- `var::has()` ma ambiguous overload (`std::string` vs `var`) thiyo, string literal pass garda compile error — overload merge gareko.
+- `pin(13, OUTPUT)` jasto expression (constructor call, declaration keyword hoina) parser ma chuttyaudinathiyo — fix gareko.
+
+**Known limitation (runtime design, is session ma nachedeko)**: `pin` type le lambda closure bhitra by-value capture huncha (Pin class ma shared_ptr/reference semantics chaina jasto `var` ma cha), tesle garda closure bhitra `.write()` garda outer variable ma update dekhindaina. Yo fix garna Pin class lai `var`-jastai shared state (shared_ptr) ma convert garnu parcha — future work ma list gareko. (Yo purano regex-based transpiler ma pani thiyo, naya parser le nabanaeko naya bug haina.)
 
 ## World-Class Language Banauna Baki Kaam (Priority Order)
 

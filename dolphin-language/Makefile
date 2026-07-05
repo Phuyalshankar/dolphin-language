@@ -5,8 +5,8 @@ CXXFLAGS = -std=c++17 -O2 -pthread
 
 all: transpiler dolphin
 
-transpiler: transpiler.cpp generator.cpp parser.cpp lexer.cpp utils.cpp
-	$(CXX) $(CXXFLAGS) transpiler.cpp generator.cpp parser.cpp lexer.cpp utils.cpp -o transpiler
+transpiler: transpiler.cpp codegen.cpp parser.cpp lexer.cpp utils.cpp
+	$(CXX) $(CXXFLAGS) transpiler.cpp codegen.cpp parser.cpp lexer.cpp utils.cpp -o transpiler
 
 dolphin: dolphin.cpp
 	$(CXX) $(CXXFLAGS) dolphin.cpp -o dolphin

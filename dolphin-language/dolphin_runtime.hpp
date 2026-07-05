@@ -447,15 +447,11 @@ public:
         return res;
     }
 
-    var has(const std::string& key) const {
+    var has(const var& key) const {
         if (type == TYPE_OBJECT && object_val) {
-            return var(object_val->count(key) > 0);
+            return var(object_val->count(key.toString()) > 0);
         }
         return var(false);
-    }
-
-    var has(const var& key) const {
-        return has(key.toString());
     }
 
     var on(const std::string& event, const var& callback) {

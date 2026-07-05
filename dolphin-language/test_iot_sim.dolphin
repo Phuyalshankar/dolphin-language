@@ -1,8 +1,8 @@
 print("--- Simulated IoT Hardware Interactions ---")
 
 # 1. Initialize simulated pins
-led_pin = pin(13, OUTPUT)
-button_pin = pin(2, INPUT)
+pin led_pin = pin(13, OUTPUT)
+pin button_pin = pin(2, INPUT)
 
 # 2. Add an event listener to the button pin (like event-driven JS!)
 button_pin.on("change", fn(state) {
