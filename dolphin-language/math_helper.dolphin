@@ -1,0 +1,8 @@
+# Helper functions for import test
+fn add(a, b) {
+    return a + b
+}
+
+fn multiply(a, b) {
+    return a * b
+}

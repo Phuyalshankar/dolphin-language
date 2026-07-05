@@ -1,0 +1,80 @@
+print("--- Complex Data Processing Test ---")
+
+# 1. Initialize complex list of transaction objects
+transactions = [
+    {
+        "id": 1,
+        "category": "Electronics",
+        "amount": 150,
+        "status": "completed"
+    },
+    {
+        "id": 2,
+        "category": "Groceries",
+        "amount": 45,
+        "status": "completed"
+    },
+    {
+        "id": 3,
+        "category": "Electronics",
+        "amount": 300,
+        "status": "pending"
+    },
+    {
+        "id": 4,
+        "category": "Clothing",
+        "amount": 120,
+        "status": "completed"
+    },
+    {
+        "id": 5,
+        "category": "Groceries",
+        "amount": 75,
+        "status": "completed"
+    }
+]
+
+# 2. Filter completed transactions with amount > 50
+print("1. Filtering completed transactions with amount > 50:")
+filtered = transactions.filter(fn(tx) {
+    return tx["status"] == "completed" && tx["amount"] > 50
+})
+
+loop (tx in filtered) {
+    print("  Tx ID: " + tx["id"] + ", Category: " + tx["category"] + ", Amount: " + tx["amount"])
+}
+
+# 3. Use isOdd / isEven helpers to count odd/even transaction amounts
+print("\n2. Identifying odd/even amounts:")
+loop (tx in transactions) {
+    amt = tx["amount"]
+    if amt.isEven() {
+        print("  Amount " + amt + " is Even")
+    }
+    if amt.isOdd() {
+        print("  Amount " + amt + " is Odd")
+    }
+}
+
+# 4. Group transactions by category using objects
+print("\n3. Grouping transactions by category:")
+grouped = {}
+
+loop (tx in transactions) {
+    cat = tx["category"]
+    if !grouped.has(cat) {
+        grouped[cat] = []
+    }
+    # Push transaction into the category array
+    grouped[cat].push(tx)
+}
+
+# 5. Iterate over the grouped object keys using Object.keys()
+categories = Object.keys(grouped)
+loop (cat in categories) {
+    print("  Category: " + cat)
+    cat_txs = grouped[cat]
+    loop (tx in cat_txs) {
+        print("    - Tx ID " + tx["id"] + ": " + tx["amount"])
+    }
+}

@@ -1,0 +1,14 @@
+*.exe
+transpiler
+dolphin
+temp_dolphin_output.cpp
+temp_dolphin_output.exe
+test_server.cpp
+test_server.exe
+test_event_driven.cpp
+test_event_driven.exe
+test_crud.cpp
+test_crud.exe
+check_output.cpp
+*.o
+.vscode/

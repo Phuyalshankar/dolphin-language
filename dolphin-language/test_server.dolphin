@@ -1,0 +1,57 @@
+print("--- Starting Dolphin Networking Engines ---")
+
+# 1. Initialize and configure HTTP Server
+server = HTTP.Server()
+
+server.get("/", fn(req, res) {
+    print("  [HTTP] GET / received")
+    res.send("Welcome to Dolphin HTTP Server!")
+})
+
+server.get("/users/:id", fn(req, res) {
+    user_id = req["params"]["id"]
+    print("  [HTTP] GET /users/" + user_id + " received")
+    res.json({
+        "userId": user_id,
+        "active": true,
+        "engine": "Dolphin"
+    })
+})
+
+server.post("/echo", fn(req, res) {
+    print("  [HTTP] POST /echo received")
+    res.send("Echo Post Request Success")
+})
+
+server.listen(8080)
+print("HTTP Server listening on http://localhost:8080")
+
+
+# 2. Initialize and configure raw TCP Server
+tcpServer = TCP.Server()
+
+tcpServer.on("connection", fn(client) {
+    print("  [TCP] New client connected to port 9090!")
+    
+    client.on("data", fn(data) {
+        # Clean trailing newlines/returns
+        trimmed = data.trim()
+        print("  [TCP Data Received] " + trimmed)
+        
+        client.write("ACK: " + trimmed + "\n")
+        
+        if trimmed == "quit" {
+            print("  [TCP] Close command received from client.")
+            client.close()
+        }
+    })
+    
+    client.on("close", fn() {
+        print("  [TCP] Client connection closed.")
+    })
+})
+
+tcpServer.listen(9090)
+print("TCP Server listening on port 9090")
+
+print("All servers running. Waiting for connections...")

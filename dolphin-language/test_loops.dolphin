@@ -1,0 +1,33 @@
+print("--- Unified Loop Keyword Test ---")
+
+# 1. Infinite Loop Test
+print("1. Infinite Loop with break:")
+x = 0
+loop {
+    x += 1
+    print("  x = " + x)
+    if x == 3 {
+        break
+    }
+}
+
+# 2. Conditional (While) Loop Test
+print("2. Conditional Loop:")
+y = 0
+loop (y < 3) {
+    y += 1
+    print("  y = " + y)
+}
+
+# 3. Range Loop Test (i from 0 to 4)
+print("3. Range Loop (0 to 4):")
+loop (i, 0, 4) {
+    print("  i = " + i)
+}
+
+# 4. Foreach Loop Test (over array)
+print("4. Foreach Loop over list:")
+items = [10, 20, 30]
+loop (item in items) {
+    print("  item = " + item)
+}

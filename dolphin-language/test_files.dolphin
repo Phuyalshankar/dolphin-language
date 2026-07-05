@@ -1,0 +1,30 @@
+print("--- File System Operations Test ---")
+
+filename = "test_data.txt"
+
+# 1. Check if file exists initially
+print("Initial exists check: " + File.exists(filename)) # Should be false
+
+# 2. Write to the file
+write_ok = File.write(filename, "Hello Dolphin Language!")
+print("Write status: " + write_ok)
+print("Post-write exists check: " + File.exists(filename)) # Should be true
+
+# 3. Read the file content
+content = File.read(filename)
+print("File content:")
+print(content)
+
+# 4. Append to the file
+append_ok = File.append(filename, "\nLearning modular, async, and file systems!")
+print("Append status: " + append_ok)
+
+# 5. Read again to see appended content
+updated_content = File.read(filename)
+print("Updated file content:")
+print(updated_content)
+
+# 6. Delete/remove the file
+delete_ok = File.remove(filename)
+print("Delete status: " + delete_ok)
+print("Post-delete exists check: " + File.exists(filename)) # Should be false

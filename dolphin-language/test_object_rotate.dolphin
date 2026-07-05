@@ -1,0 +1,21 @@
+print("--- Array of Objects Shifting Test ---")
+
+# 1. Array containing complex objects
+leds = [
+    { "id": 1, "color": "red", "status": "ON" },
+    { "id": 2, "color": "green", "status": "OFF" },
+    { "id": 3, "color": "blue", "status": "OFF" }
+]
+
+print("Initial sequence:")
+loop (led in leds) {
+    print("  LED " + led["id"] + " (" + led["color"] + "): " + led["status"])
+}
+
+# 2. Rotate the array of objects right by 1 step
+print("\nAfter shifting right by 1:")
+leds = leds.rotateRight(1)
+
+loop (led in leds) {
+    print("  LED " + led["id"] + " (" + led["color"] + "): " + led["status"])
+}

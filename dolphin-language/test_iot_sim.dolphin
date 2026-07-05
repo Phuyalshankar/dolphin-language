@@ -1,0 +1,26 @@
+print("--- Simulated IoT Hardware Interactions ---")
+
+# 1. Initialize simulated pins
+led_pin = pin(13, OUTPUT)
+button_pin = pin(2, INPUT)
+
+# 2. Add an event listener to the button pin (like event-driven JS!)
+button_pin.on("change", fn(state) {
+    print("  [Event] Button state changed to: " + state)
+    if state == HIGH {
+        print("  [Action] Turning LED ON!")
+        led_pin.write(HIGH)
+    } else {
+        print("  [Action] Turning LED OFF!")
+        led_pin.write(LOW)
+    }
+})
+
+# 3. Simulate hardware events
+print("\n1. Simulating Button Press (HIGH):")
+button_pin.write(HIGH)
+print("  Current LED pin state: " + led_pin.read()) # Should be 1 (HIGH)
+
+print("\n2. Simulating Button Release (LOW):")
+button_pin.write(LOW)
+print("  Current LED pin state: " + led_pin.read()) # Should be 0 (LOW)

@@ -1,0 +1,45 @@
+print("--- Shifting and Bitwise Operations Test ---")
+
+# 1. Bitwise Operators Test
+print("1. Bitwise Operations:")
+a = 1
+b = a << 3
+print("  1 << 3 = " + b) # Should be 8
+
+c = b >> 2
+print("  8 >> 2 = " + c) # Should be 2
+
+x = 10     # 0b1010
+y = 12     # 0b1100
+print("  10 & 12 = " + (x & y)) # 0b1000 -> 8
+print("  10 | 12 = " + (x | y)) # 0b1110 -> 14
+print("  10 ^ 12 = " + (x ^ y)) # 0b0110 -> 6
+
+# Hex toggle test (0xFFFF to 0xAAAA)
+reg = 65535 # 0xFFFF
+toggle_mask = 21845 # 0x5555 (XORing 0xFFFF with 0x5555 should toggle to 0xAAAA which is 43690)
+reg ^= toggle_mask
+print("  0xFFFF ^= 0x5555 -> " + reg) # Should be 43690
+
+# Bitwise NOT
+neg = ~0
+print("  ~0 = " + neg) # Should be -1
+
+# 2. Circular Shifting (Rotation) Test
+print("\n2. LED Blinking (Array circular shifting right):")
+leds = [1, 0, 0]
+print("  Initial LED state: " + leds)
+
+loop (step, 1, 4) {
+    leds = leds.rotateRight(1)
+    print("  Step " + step + ": " + leds)
+}
+
+print("\n3. LCD Marquee Display (String circular shifting left):")
+marquee = "Dolphin "
+print("  Initial display: \"" + marquee + "\"")
+
+loop (step, 1, 6) {
+    marquee = marquee.rotateLeft(1)
+    print("  Step " + step + ": \"" + marquee + "\"")
+}

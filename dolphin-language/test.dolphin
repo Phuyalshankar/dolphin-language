@@ -1,0 +1,60 @@
+# Welcome message
+name = "Dolphin"
+version = 1.0
+print("Welcome to " + name + " version " + version)
+
+# Control flow
+if version >= 1.0 {
+    print("Version is ready!")
+} else {
+    print("Under development.")
+}
+
+# Math operations
+x = 10
+y = 20
+z = x + y * 2
+print("z is: " + z)
+
+# Lists
+numbers = [10, 20, 30]
+numbers.add(40)
+print("First number: " + numbers[0])
+print("Added number: " + numbers[3])
+print("Full list: " + numbers)
+
+# Functions
+fn greet(user) {
+    return "Hello, " + user + "!"
+}
+
+message = greet("Developer")
+print(message)
+
+# Event Listener Simulation (Microcontroller style)
+print("Starting Pin simulation...")
+pin led = Pin(13, OUTPUT)
+pin button = Pin(2, INPUT)
+
+# Register change callback on button
+button.on("change", fn(state) {
+    if state == HIGH {
+        print("Button pressed -> turning LED ON")
+        led.turnOn()
+    } else {
+        print("Button released -> turning LED OFF")
+        led.turnOff()
+    }
+})
+
+# Register change callback on LED
+led.on("change", fn(state) {
+    print("LED state changed to: " + state)
+})
+
+# Trigger changes
+print("Simulating button press:")
+button.write(HIGH)
+
+print("Simulating button release:")
+button.write(LOW)

@@ -1,0 +1,37 @@
+print("--- First-Class Functions Test ---")
+
+# 1. Define standard functions
+fn add(a, b) {
+    return a + b
+}
+
+fn subtract(a, b) {
+    return a - b
+}
+
+# 2. Assign standard function to a variable
+operation = add
+print("Operation representation: " + operation) # Should print [Function]
+
+# 3. Call assigned variable
+result = operation(15, 25)
+print("Result of calling operation(15, 25): " + result) # Should print 40
+
+# 4. Reassign standard function to another variable
+operation = subtract
+print("Reassigned operation(50, 20): " + operation(50, 20)) # Should print 30
+
+# 5. Pass function as an argument (callback) to another function
+fn execute(x, y, cb) {
+    return cb(x, y)
+}
+
+print("Passing add callback: " + execute(10, 5, add))       # Should print 15
+print("Passing subtract callback: " + execute(10, 5, subtract))  # Should print 5
+
+# 6. Assign lambda (anonymous function) to a variable
+multiply = fn(a, b) {
+    return a * b
+}
+print("Lambda multiply(6, 7): " + multiply(6, 7))           # Should print 42
+print("Passing lambda callback: " + execute(4, 5, multiply)) # Should print 20

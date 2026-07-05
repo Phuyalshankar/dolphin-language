@@ -1,0 +1,57 @@
+print("--- Operators Test ---")
+
+# 1. Exponentiation Test
+base = 2
+power = 8
+result = base ** power
+print("2 ** 8 = " + result) # Should be 256
+print("5 ** 3 = " + (5 ** 3)) # Should be 125
+
+# 2. Compound Assignment Test
+x = 10
+x += 5
+print("x += 5 -> " + x) # Should be 15
+
+x -= 3
+print("x -= 3 -> " + x) # Should be 12
+
+x *= 2
+print("x *= 2 -> " + x) # Should be 24
+
+x /= 4
+print("x /= 4 -> " + x) # Should be 6
+
+x %= 4
+print("x %= 4 -> " + x) # Should be 2
+
+# 3. Increment & Decrement Test
+y = 10
+print("Initial y = " + y)
+
+# Postfix increment
+y_post = y++
+print("y++ (returns old y): " + y_post) # Should be 10
+print("After y++, y is: " + y) # Should be 11
+
+# Prefix increment
+y_pre = ++y
+print("++y (returns new y): " + y_pre) # Should be 12
+print("After ++y, y is: " + y) # Should be 12
+
+# Postfix decrement
+y_post_dec = y--
+print("y-- (returns old y): " + y_post_dec) # Should be 12
+print("After y--, y is: " + y) # Should be 11
+
+# Prefix decrement
+y_pre_dec = --y
+print("--y (returns new y): " + y_pre_dec) # Should be 10
+print("After --y, y is: " + y) # Should be 10
+
+# 4. Logical NOT Test
+flag = true
+print("!true = " + !flag) # Should be false
+print("!false = " + !(!flag)) # Should be true
+
+empty_str = ""
+print("!\"\" (empty string) = " + !empty_str) # Should be true

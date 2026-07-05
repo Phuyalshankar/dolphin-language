@@ -1,0 +1,20 @@
+print("--- Asynchronous Timers Test ---")
+print("Main thread: starting timer tests")
+
+# 1. setTimeout Test (Runs once after 1.5 seconds)
+setTimeout(fn() {
+    print("[Timer] setTimeout fired after 1.5 seconds!")
+}, 1500)
+
+# 2. setInterval Test (Runs every 1 second)
+counter = 0
+setInterval(fn() {
+    counter = counter + 1
+    print("[Timer] setInterval interval tick: " + counter)
+}, 1000)
+
+# 3. Main thread sleep to allow timers to run
+print("Main thread: sleeping for 4.5 seconds to let timers execute...")
+sleep(4500)
+
+print("Main thread: waking up and exiting!")

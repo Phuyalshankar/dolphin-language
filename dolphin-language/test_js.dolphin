@@ -1,0 +1,67 @@
+# 1. Math Library Test
+print("--- Math Library Test ---")
+print("Math.PI: " + Math.PI)
+r = Math.random() * 10
+print("Random float (0-10): " + r)
+print("Math.floor(r): " + Math.floor(r))
+print("Math.round(5.6): " + Math.round(5.6))
+print("Math.abs(-42): " + Math.abs(-42))
+print("Math.pow(2, 8): " + Math.pow(2, 8))
+
+# 2. String Methods Test
+print("\n--- String Methods Test ---")
+text = "apple,banana,cherry,grape"
+print("Original string: " + text)
+print("Length of string: " + text.length)
+print("Uppercase: " + text.toUpperCase())
+
+fruits = text.split(",")
+print("Fruits split array: " + fruits)
+print("Fruits length: " + fruits.length)
+
+# 3. Array Methods Test
+print("\n--- Array Methods Test ---")
+fruits.push("mango")
+print("After push: " + fruits)
+print("After push length: " + fruits.length)
+
+popped = fruits.pop()
+print("Popped: " + popped)
+print("After pop: " + fruits)
+
+joined = fruits.join(" - ")
+print("Joined: " + joined)
+
+print("Index of banana: " + fruits.indexOf("banana"))
+print("Index of unknown: " + fruits.indexOf("unknown"))
+
+# 4. Objects / Dictionaries Test
+print("\n--- Objects & JSON Test ---")
+user = {
+    "name": "Dolphin Core",
+    "version": 1.1,
+    "tags": ["simple", "cross-platform"]
+}
+
+print("Original Object representation:")
+print(user)
+
+print("Accessing object keys:")
+print("Name: " + user["name"])
+print("Version: " + user["version"])
+print("First Tag: " + user["tags"][0])
+
+# Modify and add new keys
+user["active"] = true
+user["tags"].push("native")
+print("After modification:")
+print(user)
+
+print("Object keys list: " + user.keys())
+print("Has 'version' key: " + user.has("version"))
+print("Has 'unknown' key: " + user.has("unknown"))
+
+# JSON Stringify
+json_str = JSON.stringify(user)
+print("JSON.stringify output:")
+print(json_str)

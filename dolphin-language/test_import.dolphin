@@ -1,0 +1,11 @@
+print("--- Import System Test ---")
+
+# Import the helper module
+import "math_helper"
+
+# Use functions from the helper module
+sum = add(10, 20)
+print("Adding 10 + 20: " + sum)
+
+product = multiply(5, 8)
+print("Multiplying 5 * 8: " + product)

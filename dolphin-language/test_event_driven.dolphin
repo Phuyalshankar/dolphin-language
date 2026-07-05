@@ -1,0 +1,59 @@
+print("--- Dolphin Event-Driven Architecture Test ---")
+
+# 1. Universal Event Emitter Testing
+print("\n1. Testing Universal Event Emitter:")
+emitter = {}
+
+# Register standard listener
+emitter.on("data", fn(payload) {
+    print("  [Event .on] Received data payload: " + payload)
+})
+
+# Register 'once' listener (should fire only once!)
+emitter.once("only_once", fn(msg) {
+    print("  [Event .once] Fired with: " + msg)
+})
+
+# Emit standard events
+print("  Emitting 'data' event first time:")
+emitter.emit("data", "Hello Dolphin!")
+
+print("  Emitting 'only_once' event first time:")
+emitter.emit("only_once", "This runs once")
+
+print("  Emitting 'only_once' event second time:")
+emitter.emit("only_once", "This should NOT run")
+
+# Turn off event
+emitter.off("data")
+print("  Emitting 'data' event after .off():")
+emitter.emit("data", "No one should hear this")
+
+
+# 2. Async Background Worker and Event Loop
+print("\n2. Testing Asynchronous Background Worker:")
+
+print("  [Main Thread] Spawing parallel CPU-intense computation...")
+Dolphin.async(
+    fn() {
+        # CPU-intensive calculation running in a background thread
+        sum = 0
+        loop (i, 1, 1000000) {
+            sum += i
+        }
+        return sum
+    },
+    fn(result) {
+        print("  [Main Thread Callback] Background computation complete! Sum = " + result)
+    }
+)
+print("  [Main Thread] Background worker spawned! Main thread continues immediately...")
+
+
+# 3. Timeout Testing (with implicit Event Loop Keep-Alive)
+print("\n3. Testing Timer (setTimeout) & Event Loop Keep-Alive:")
+setTimeout(fn() {
+    print("  [Main Thread Timer] Timeout fired after 500ms!")
+}, 500)
+
+print("  [Main Thread] setTimeout scheduled! Script reached the end. Event loop should keep it alive...")

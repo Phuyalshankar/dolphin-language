@@ -1,0 +1,40 @@
+print("--- Functional Array Methods Test ---")
+
+# Initial Array
+numbers = [1, 2, 3, 4, 5]
+print("Original numbers: " + numbers)
+
+# 1. Map Test (1 argument callback)
+doubled = numbers.map(fn(x) {
+    return x * 2
+})
+print("Doubled (map 1-arg): " + doubled)
+
+# 2. Map Test (2 arguments callback: val, index)
+indexed = numbers.map(fn(val, idx) {
+    return val + " at index " + idx
+})
+print("Indexed (map 2-arg): " + indexed)
+
+# 3. Filter Test
+evens = numbers.filter(fn(x) {
+    return x % 2 == 0
+})
+print("Evens (filter): " + evens)
+
+# 4. Find & FindOne Test
+found = numbers.find(fn(x) {
+    return x > 3
+})
+print("Find first > 3: " + found)
+
+found_one = numbers.findOne(fn(x) {
+    return x == 2
+})
+print("FindOne == 2: " + found_one)
+
+# 5. ForEach Test
+print("\n--- Iterating with forEach ---")
+numbers.forEach(fn(val, idx) {
+    print("Value: " + val + ", Index: " + idx)
+})
