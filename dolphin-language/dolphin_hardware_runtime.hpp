@@ -304,6 +304,12 @@ public:
     const var& operator[](const char* key) const {
         return (*this)[std::string(key)];
     }
+    var& operator[](const var& key) {
+        return (*this)[key.toString()];
+    }
+    const var& operator[](const var& key) const {
+        return (*this)[key.toString()];
+    }
 };
 
 inline var operator+(const char* lhs, const var& rhs) { return var(lhs) + rhs; }

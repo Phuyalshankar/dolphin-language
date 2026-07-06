@@ -142,6 +142,7 @@ struct FileClass {
         return var(std::remove(filename.toString().c_str()) == 0);
     }
 } File;
+static FileClass DolphinFile;
 
 struct ObjectClass {
     var keys(const var& obj) { return obj.keys(); }

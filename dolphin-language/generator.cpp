@@ -6,6 +6,7 @@
 #include <regex>
 #include <iostream>
 #include <unordered_set>
+#include <fstream>
 
 // ─── Forward declarations ─────────────────────────────────────────────────────
 static std::string compileSelf(const std::string& raw, const std::string& current_class);
@@ -219,6 +220,32 @@ std::string CallExpr::compile(CodegenContext& ctx) const {
         auto* id = dynamic_cast<IdentifierExpr*>(binExpr->rhs.get());
         std::string method_name = id ? id->name : binExpr->rhs->compile(ctx);
         std::string args_code = compileArgs(args, ctx);
+
+        // Embed File.read at compile time on hardware targets
+        if (obj_code == "DolphinFile" && method_name == "read" && ctx.hardware_target && !args.empty()) {
+            auto* lit = dynamic_cast<LiteralExpr*>(args[0].get());
+            if (lit && (lit->kind == LiteralExpr::LIT_STRING || lit->kind == LiteralExpr::LIT_TEMPLATE)) {
+                std::string path = lit->value;
+                if (path.length() >= 2 && (path.front() == '"' || path.front() == '`')) {
+                    path = path.substr(1, path.length() - 2);
+                }
+                std::ifstream f(path);
+                if (f.is_open()) {
+                    std::stringstream ss;
+                    ss << f.rdbuf();
+                    std::string file_content = ss.str();
+                    std::string escaped = "\"";
+                    for (char c : file_content) {
+                        if (c == '"') escaped += "\\\"";
+                        else if (c == '\n') escaped += "\\n";
+                        else if (c == '\r') escaped += "\\r";
+                        else escaped += c;
+                    }
+                    escaped += "\"";
+                    return "var(" + escaped + ")";
+                }
+            }
+        }
 
         // Check if native namespace
         if (obj_code == "WiFi" || obj_code == "Bluetooth" || obj_code == "Zigbee" || 
