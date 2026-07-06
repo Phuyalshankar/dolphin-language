@@ -6,12 +6,13 @@
 #include <iostream>
 #include <stdexcept>
 
-// Forward declaration from generator.cpp
+// Forward declarations from generator.cpp
 std::string generateCode(const std::unique_ptr<BlockStmt>& ast);
+std::string generateHardwareCode(const std::unique_ptr<BlockStmt>& ast);
 
 // Transpile a .dolphin source file to a .cpp output file.
 // Returns the generated C++ code as a string.
-std::string transpile(const std::string& source_path, const std::string& out_path) {
+std::string transpile(const std::string& source_path, const std::string& out_path, bool hardware_target = false) {
     // Read source
     std::ifstream infile(source_path);
     if (!infile.is_open()) {
@@ -30,7 +31,7 @@ std::string transpile(const std::string& source_path, const std::string& out_pat
     std::unique_ptr<BlockStmt> ast = parser.parse();
 
     // Codegen
-    std::string cpp_code = generateCode(ast);
+    std::string cpp_code = hardware_target ? generateHardwareCode(ast) : generateCode(ast);
 
     // Write
     std::ofstream outfile(out_path);
@@ -42,3 +43,22 @@ std::string transpile(const std::string& source_path, const std::string& out_pat
 
     return cpp_code;
 }
+
+#ifdef BUILD_TRANSPILER_EXE
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        std::cerr << "Usage: transpiler <input.dolphin> <output.cpp> [hardware]\n";
+        return 1;
+    }
+    std::string inputPath = argv[1];
+    std::string outputPath = argv[2];
+    bool hardwareTarget = (argc >= 4 && std::string(argv[3]) == "hardware");
+    try {
+        transpile(inputPath, outputPath, hardwareTarget);
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+        return 1;
+    }
+}
+#endif
