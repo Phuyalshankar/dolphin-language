@@ -384,6 +384,9 @@ std::string LambdaExpr::compile(CodegenContext& ctx) const {
     } else {
         bool old_in_func = ctx.in_function;
         ctx.in_function = true;
+        ctx.scope_stack.push_back({ Scope::SCOPE_BLOCK, std::set<std::string>() });
+        ctx.typed_scope_stack.push_back({});
+
         auto block_body = dynamic_cast<BlockStmt*>(body.get());
         if (block_body) {
             for (auto const& stmt : block_body->statements) {
@@ -397,6 +400,9 @@ std::string LambdaExpr::compile(CodegenContext& ctx) const {
             ctx.indent(ss);
             ss << body->compile(ctx);
         }
+
+        ctx.scope_stack.pop_back();
+        ctx.typed_scope_stack.pop_back();
         ctx.in_function = old_in_func;
         ss << "})";
     }

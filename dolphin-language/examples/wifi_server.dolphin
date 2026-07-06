@@ -1,0 +1,56 @@
+# WiFi AP mode setup
+# Start an Access Point with SSID "Dolphin-ESP" and password "12345678"
+print("Starting Access Point 'Dolphin-ESP'...")
+ip = Wifi.softAP("Dolphin-ESP", "12345678")
+print("Access Point started! Connect to 'Dolphin-ESP' WiFi and visit http://" + ip)
+
+# Set up LED pin
+pin led = pin(2, OUTPUT)
+# Start LED as HIGH (on most boards, HIGH is off for onboard active-low LED, let's make it off)
+led.write(HIGH)
+
+# Initialize HTTP server
+server = HTTP.Server()
+
+# Route to show homepage with control buttons!
+server.get("/", fn(req, res) {
+    html = "<html><head><title>Dolphin LED Control</title>"
+    html = html + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+    html = html + "<style>body{font-family:sans-serif;text-align:center;margin-top:50px;background:#1e1e2e;color:#cdd6f4}"
+    html = html + "h1{color:#f5c2e7} .btn{display:inline-block;padding:15px 30px;font-size:18px;margin:20px;border:none;"
+    html = html + "border-radius:8px;cursor:pointer;text-decoration:none;font-weight:bold}"
+    html = html + ".btn-on{background:#a6e3a1;color:#11111b} .btn-off{background:#f38ba8;color:#11111b}</style></head>"
+    html = html + "<body><h1>Dolphin IoT LED Server</h1>"
+    html = html + "<p>Control the onboard LED of your ESP8266 board:</p>"
+    html = html + "<a href='/on' class='btn btn-on'>TURN LED ON</a>"
+    html = html + "<a href='/off' class='btn btn-off'>TURN LED OFF</a>"
+    html = html + "</body></html>"
+    res.send(html)
+})
+
+# Route to turn LED ON
+# Since ESP8266 onboard LED is active-LOW, writing LOW turns it ON!
+server.get("/on", fn(req, res) {
+    print("Web request: Turn LED ON")
+    led.write(LOW)
+    # Redirect back to homepage
+    res.send("<html><head><meta http-equiv='refresh' content='0;url=/'></head></html>")
+})
+
+# Route to turn LED OFF
+# Writing HIGH turns it OFF!
+server.get("/off", fn(req, res) {
+    print("Web request: Turn LED OFF")
+    led.write(HIGH)
+    # Redirect back to homepage
+    res.send("<html><head><meta http-equiv='refresh' content='0;url=/'></head></html>")
+})
+
+# Listen on port 80 (standard HTTP port)
+server.listen(80)
+print("HTTP Server listening on port 80...")
+
+# Keep-alive loop
+loop {
+    sleep(100)
+}

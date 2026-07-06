@@ -18,6 +18,19 @@
 
 #include <Arduino.h>
 #undef PI
+
+#ifdef ESP8266
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+using WebServerClass = ESP8266WebServer;
+#else
+#include <WiFi.h>
+#include <WebServer.h>
+using WebServerClass = WebServer;
+#endif
+
+static WebServerClass* global_esp_web_server = nullptr;
+
 #include <string>
 #include <vector>
 #include <sstream>
@@ -121,6 +134,43 @@ public:
     explicit operator bool() const { return toBool(); }
     bool as_bool() const { return toBool(); }
 
+    var on(const var& event, const var& callback) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("on")) {
+            return (*object_val)["on"](std::vector<var>{event, callback});
+        }
+        return var();
+    }
+    var get(const var& path, const var& callback) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("get")) {
+            return (*object_val)["get"](std::vector<var>{path, callback});
+        }
+        return var();
+    }
+    var post(const var& path, const var& callback) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("post")) {
+            return (*object_val)["post"](std::vector<var>{path, callback});
+        }
+        return var();
+    }
+    var listen(const var& port) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("listen")) {
+            return (*object_val)["listen"](std::vector<var>{port});
+        }
+        return var();
+    }
+    var send(const var& content) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("send")) {
+            return (*object_val)["send"](std::vector<var>{content});
+        }
+        return var();
+    }
+    var json(const var& content) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("json")) {
+            return (*object_val)["json"](std::vector<var>{content});
+        }
+        return var();
+    }
+
     std::string toString() const {
         if (type == TYPE_STRING) return string_val;
         if (type == TYPE_INT) return std::to_string(int_val);
@@ -220,6 +270,28 @@ public:
     }
     var operator<=(const var& o) const { return var(!((*this > o).toBool())); }
     var operator>=(const var& o) const { return var(!((*this < o).toBool())); }
+
+    var& operator[](const std::string& key) {
+        if (type != TYPE_OBJECT) {
+            type = TYPE_OBJECT;
+            object_val = std::make_shared<var_object>();
+        }
+        return (*object_val)[key];
+    }
+    const var& operator[](const std::string& key) const {
+        static const var empty;
+        if (type == TYPE_OBJECT && object_val) {
+            auto found = object_val->find(key);
+            if (found != object_val->end()) return found->second;
+        }
+        return empty;
+    }
+    var& operator[](const char* key) {
+        return (*this)[std::string(key)];
+    }
+    const var& operator[](const char* key) const {
+        return (*this)[std::string(key)];
+    }
 };
 
 inline var operator+(const char* lhs, const var& rhs) { return var(lhs) + rhs; }
@@ -345,6 +417,9 @@ namespace DolphinRuntime {
     }
     inline void pollPins() {
         for (Pin* p : pollRegistry()) p->poll();
+        if (global_esp_web_server) {
+            global_esp_web_server->handleClient();
+        }
     }
 }
 
@@ -367,11 +442,191 @@ struct JSONClass {
 
 inline var sleep(const std::vector<var>& args) {
     if (args.size() > 0) {
-        delay((unsigned long)args[0].toInt());
+        unsigned long start = millis();
+        unsigned long dur = args[0].toInt();
+        while (millis() - start < dur) {
+            if (global_esp_web_server) {
+                global_esp_web_server->handleClient();
+            }
+            delay(1);
+        }
     }
     return var();
 }
-inline var sleep(const var& ms) { delay((unsigned long)ms.toInt()); return var(); }
+inline var sleep(const var& ms) {
+    unsigned long start = millis();
+    unsigned long dur = ms.toInt();
+    while (millis() - start < dur) {
+        if (global_esp_web_server) {
+            global_esp_web_server->handleClient();
+        }
+        delay(1);
+    }
+    return var();
+}
+
+struct WifiClass {
+    var connect(const var& ssid, const var& password) {
+        ::WiFi.begin(ssid.toString().c_str(), password.toString().c_str());
+        while (::WiFi.status() != WL_CONNECTED) {
+            delay(500);
+            Serial.print(".");
+        }
+        Serial.println("\nWiFi connected");
+        return var(true);
+    }
+    var softAP(const var& ssid, const var& password) {
+        ::WiFi.softAP(ssid.toString().c_str(), password.toString().c_str());
+        Serial.print("Access Point started. IP: ");
+        Serial.println(::WiFi.softAPIP());
+        return var(::WiFi.softAPIP().toString().c_str());
+    }
+    var ip() {
+        return var(::WiFi.localIP().toString().c_str());
+    }
+    var status() {
+        return var((long long)::WiFi.status());
+    }
+    var operator[](const std::string& key) {
+        if (key == "softAP") {
+            return var([this](const std::vector<var>& args) -> var {
+                if (args.size() > 1) return this->softAP(args[0], args[1]);
+                return var();
+            });
+        }
+        if (key == "connect") {
+            return var([this](const std::vector<var>& args) -> var {
+                if (args.size() > 1) return this->connect(args[0], args[1]);
+                return var();
+            });
+        }
+        if (key == "ip") {
+            return var([this](const std::vector<var>& args) -> var {
+                return this->ip();
+            });
+        }
+        if (key == "status") {
+            return var([this](const std::vector<var>& args) -> var {
+                return this->status();
+            });
+        }
+        return var();
+    }
+} DolphinWifi;
+
+struct HTTPRouteHandler {
+    std::string path;
+    var callback;
+};
+
+static std::vector<HTTPRouteHandler> global_get_routes;
+static std::vector<HTTPRouteHandler> global_post_routes;
+
+class HTTPServerClass {
+public:
+    void get(const var& path, const var& callback) {
+        global_get_routes.push_back({path.toString(), callback});
+    }
+    void post(const var& path, const var& callback) {
+        global_post_routes.push_back({path.toString(), callback});
+    }
+    void listen(const var& port) {
+        int port_num = port.toInt();
+        static WebServerClass server(port_num);
+        global_esp_web_server = &server;
+
+        for (const auto& r : global_get_routes) {
+            std::string path = r.path;
+            var cb = r.callback;
+            server.on(path.c_str(), HTTP_GET, [cb]() {
+                var req(var::TYPE_OBJECT);
+                var params(var::TYPE_OBJECT);
+                if (global_esp_web_server) {
+                    for (int i = 0; i < global_esp_web_server->args(); i++) {
+                        params[global_esp_web_server->argName(i).c_str()] = var(global_esp_web_server->arg(i).c_str());
+                    }
+                }
+                req["params"] = params;
+
+                var res(var::TYPE_OBJECT);
+                res["send"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "text/plain", args[0].toString().c_str());
+                    }
+                    return var();
+                });
+                res["json"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "application/json", args[0].toString().c_str());
+                    }
+                    return var();
+                });
+
+                cb(std::vector<var>{req, res});
+            });
+        }
+
+        for (const auto& r : global_post_routes) {
+            std::string path = r.path;
+            var cb = r.callback;
+            server.on(path.c_str(), HTTP_POST, [cb]() {
+                var req(var::TYPE_OBJECT);
+                var params(var::TYPE_OBJECT);
+                if (global_esp_web_server) {
+                    for (int i = 0; i < global_esp_web_server->args(); i++) {
+                        params[global_esp_web_server->argName(i).c_str()] = var(global_esp_web_server->arg(i).c_str());
+                    }
+                }
+                req["params"] = params;
+
+                var res(var::TYPE_OBJECT);
+                res["send"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "text/plain", args[0].toString().c_str());
+                    }
+                    return var();
+                });
+                res["json"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "application/json", args[0].toString().c_str());
+                    }
+                    return var();
+                });
+
+                cb(std::vector<var>{req, res});
+            });
+        }
+
+        server.onNotFound([]() {
+            if (global_esp_web_server) {
+                global_esp_web_server->send(404, "text/plain", "Not Found");
+            }
+        });
+
+        server.begin();
+        Serial.println("HTTP Server started");
+    }
+};
+
+struct HTTPNamespace {
+    var Server() {
+        auto server_ptr = std::make_shared<HTTPServerClass>();
+        var s(var::TYPE_OBJECT);
+        s["get"] = var([server_ptr](const std::vector<var>& args) -> var {
+            if (args.size() > 1) server_ptr->get(args[0], args[1]);
+            return var();
+        });
+        s["post"] = var([server_ptr](const std::vector<var>& args) -> var {
+            if (args.size() > 1) server_ptr->post(args[0], args[1]);
+            return var();
+        });
+        s["listen"] = var([server_ptr](const std::vector<var>& args) -> var {
+            if (args.size() > 0) server_ptr->listen(args[0]);
+            return var();
+        });
+        return s;
+    }
+} HTTP;
 
 template<typename... Args>
 inline void dolphin_print(Args... args) {
