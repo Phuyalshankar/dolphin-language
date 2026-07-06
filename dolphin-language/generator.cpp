@@ -83,8 +83,10 @@ std::string LiteralExpr::compile(CodegenContext& ctx) const {
                     }
                     i += 2;
                 } else {
-                    // Escape double quotes inside C++ string
+                    // Escape double quotes and newlines inside C++ string
                     if (raw[i] == '"') buf += "\\\"";
+                    else if (raw[i] == '\n') buf += "\\n";
+                    else if (raw[i] == '\r') buf += "\\r";
                     else buf += raw[i];
                     i++;
                 }

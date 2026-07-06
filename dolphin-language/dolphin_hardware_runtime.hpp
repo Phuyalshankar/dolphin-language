@@ -158,6 +158,18 @@ public:
         }
         return var();
     }
+    var text(const var& content) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("text")) {
+            return (*object_val)["text"](std::vector<var>{content});
+        }
+        return var();
+    }
+    var html(const var& content) {
+        if (type == TYPE_OBJECT && object_val && object_val->count("html")) {
+            return (*object_val)["html"](std::vector<var>{content});
+        }
+        return var();
+    }
     var send(const var& content) {
         if (type == TYPE_OBJECT && object_val && object_val->count("send")) {
             return (*object_val)["send"](std::vector<var>{content});
@@ -295,6 +307,7 @@ public:
 };
 
 inline var operator+(const char* lhs, const var& rhs) { return var(lhs) + rhs; }
+inline var operator+(const std::string& lhs, const var& rhs) { return var(lhs) + rhs; }
 inline var operator+(double lhs, const var& rhs) { return var(lhs) + rhs; }
 inline var operator+(int lhs, const var& rhs) { return var(lhs) + rhs; }
 
@@ -549,6 +562,18 @@ public:
                 req["params"] = params;
 
                 var res(var::TYPE_OBJECT);
+                res["text"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "text/plain", args[0].toString().c_str());
+                    }
+                    return var();
+                });
+                res["html"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "text/html", args[0].toString().c_str());
+                    }
+                    return var();
+                });
                 res["send"] = var([](const std::vector<var>& args) -> var {
                     if (args.size() > 0 && global_esp_web_server) {
                         std::string content = args[0].toString();
@@ -585,6 +610,18 @@ public:
                 req["params"] = params;
 
                 var res(var::TYPE_OBJECT);
+                res["text"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "text/plain", args[0].toString().c_str());
+                    }
+                    return var();
+                });
+                res["html"] = var([](const std::vector<var>& args) -> var {
+                    if (args.size() > 0 && global_esp_web_server) {
+                        global_esp_web_server->send(200, "text/html", args[0].toString().c_str());
+                    }
+                    return var();
+                });
                 res["send"] = var([](const std::vector<var>& args) -> var {
                     if (args.size() > 0 && global_esp_web_server) {
                         std::string content = args[0].toString();
