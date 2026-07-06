@@ -24,6 +24,7 @@ struct CodegenContext {
     bool in_class = false;
     int indent_level = 1;
     std::string current_class;
+    bool hardware_target = false;
 
     void indent(std::stringstream& ss) const {
         for (int i = 0; i < indent_level; ++i) ss << "    ";

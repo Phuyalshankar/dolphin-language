@@ -381,6 +381,19 @@ static int cmd_flash(int argc, char* argv[]) {
         }
         outfile << cpp_code;
         outfile.close();
+
+        // Copy runtime header
+        std::string runtime_src = "dolphin_hardware_runtime.hpp";
+        if (!std::filesystem::exists(runtime_src)) {
+            runtime_src = "dolphin-language/dolphin_hardware_runtime.hpp";
+        }
+        if (std::filesystem::exists(runtime_src)) {
+            std::filesystem::remove(sketchDir + "/dolphin_hardware_runtime.hpp");
+            std::filesystem::copy_file(runtime_src, sketchDir + "/dolphin_hardware_runtime.hpp", std::filesystem::copy_options::overwrite_existing);
+        } else {
+            std::cerr << col_red("error") << ": dolphin_hardware_runtime.hpp not found!\n";
+            return 1;
+        }
     } catch (const std::exception& e) {
         std::cerr << col_red("error") << ": transpilation failed: " << e.what() << "\n";
         return 1;

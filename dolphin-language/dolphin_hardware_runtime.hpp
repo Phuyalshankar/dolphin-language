@@ -17,6 +17,7 @@
 //     anything beyond simple digital I/O on AVR boards.
 
 #include <Arduino.h>
+#undef PI
 #include <string>
 #include <vector>
 #include <sstream>
@@ -118,6 +119,7 @@ public:
         return false;
     }
     explicit operator bool() const { return toBool(); }
+    bool as_bool() const { return toBool(); }
 
     std::string toString() const {
         if (type == TYPE_STRING) return string_val;
@@ -252,6 +254,10 @@ inline var input(const std::string& prompt = "") {
 // below), while `HIGH`/`LOW` pass through untouched and resolve to
 // Arduino.h's macros at hardware-compile time.
 enum PinMode { PIN_INPUT, PIN_OUTPUT };
+#define DOLPHIN_INPUT   PIN_INPUT
+#define DOLPHIN_OUTPUT  PIN_OUTPUT
+#define DOLPHIN_HIGH    HIGH
+#define DOLPHIN_LOW     LOW
 
 class Pin;
 
@@ -264,13 +270,19 @@ private:
     int pin_num;
     PinMode mode;
     bool state = false;
-    std::vector<std::function<void(var)>> listeners;
+    std::vector<var> listeners;
 
 public:
     Pin() : pin_num(-1), mode(PIN_INPUT) {}
     Pin(int p, PinMode m) : pin_num(p), mode(m) {
         pinMode(pin_num, m == PIN_OUTPUT ? OUTPUT : INPUT);
         if (m == PIN_INPUT) state = digitalRead(pin_num) == HIGH;
+    }
+    Pin(const std::vector<var>& args) {
+        pin_num = args.size() > 0 ? args[0].toInt() : -1;
+        mode = args.size() > 1 ? (PinMode)args[1].toInt() : PIN_INPUT;
+        pinMode(pin_num, mode == PIN_OUTPUT ? OUTPUT : INPUT);
+        if (mode == PIN_INPUT) state = digitalRead(pin_num) == HIGH;
     }
 
     void write(const var& s) {
@@ -284,11 +296,26 @@ public:
         return var(state);
     }
 
-    void on(const std::string& event, std::function<void(var)> callback) {
-        if (event == "change") {
+    void on(const var& event, const var& callback) {
+        if (event.toString() == "change") {
             listeners.push_back(callback);
             DolphinRuntime::pollRegistry().push_back(static_cast<::Pin*>(this));
         }
+    }
+
+    var operator[](const std::string& key) {
+        if (key == "write") {
+            return var([this](const std::vector<var>& args) -> var {
+                if (args.size() > 0) this->write(args[0]);
+                return var();
+            });
+        }
+        if (key == "read") {
+            return var([this](const std::vector<var>& args) -> var {
+                return this->read();
+            });
+        }
+        return var();
     }
 
     // Called every loop() iteration by DolphinRuntime::pollPins() so
@@ -305,7 +332,7 @@ public:
 
 private:
     void trigger(var value) {
-        for (auto& cb : listeners) cb(value);
+        for (auto& cb : listeners) cb(std::vector<var>{value});
     }
 };
 
@@ -339,3 +366,13 @@ struct JSONClass {
 } JSON;
 
 inline var sleep(const var& ms) { delay((unsigned long)ms.toInt()); return var(); }
+
+template<typename... Args>
+inline void dolphin_print(Args... args) {
+    print(args...);
+}
+
+template<typename... Args>
+inline void dolphin_println(Args... args) {
+    print(args...);
+}
