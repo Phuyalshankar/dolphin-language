@@ -1,5 +1,4 @@
 # WiFi AP mode setup
-# Start an Access Point with SSID "Dolphin-ESP" and password "12345678"
 print("Starting Access Point 'Dolphin-ESP'...")
 ip = Wifi.softAP("Dolphin-ESP", "12345678")
 print("Access Point started! Connect to 'Dolphin-ESP' WiFi and visit http://" + ip)
@@ -12,11 +11,9 @@ led.write(HIGH)
 # Initialize HTTP server
 server = HTTP.Server()
 
-# Route to show homepage with control buttons!
+# Route to show homepage with control buttons using raw HTML literal!
 server.get("/", fn(req, res) {
-    # Using backticks for clean, multiline HTML content!
-    html_content = `
-<html>
+    res.html(<html>
 <head>
     <title>Dolphin LED Control</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
@@ -58,27 +55,21 @@ server.get("/", fn(req, res) {
     <a href='/on' class='btn btn-on'>TURN LED ON</a>
     <a href='/off' class='btn btn-off'>TURN LED OFF</a>
 </body>
-</html>
-`
-    res.html(html_content)
+</html>)
 })
 
-# Route to turn LED ON
-# Since ESP8266 onboard LED is active-LOW, writing LOW turns it ON!
+# Route to turn LED ON using raw inline HTML literal!
 server.get("/on", fn(req, res) {
     print("Web request: Turn LED ON")
     led.write(LOW)
-    # Redirect back to homepage
-    res.html("<html><head><meta http-equiv='refresh' content='0;url=/'></head></html>")
+    res.html(<html><head><meta http-equiv='refresh' content='0;url=/'></head></html>)
 })
 
-# Route to turn LED OFF
-# Writing HIGH turns it OFF!
+# Route to turn LED OFF using raw inline HTML literal!
 server.get("/off", fn(req, res) {
     print("Web request: Turn LED OFF")
     led.write(HIGH)
-    # Redirect back to homepage
-    res.html("<html><head><meta http-equiv='refresh' content='0;url=/'></head></html>")
+    res.html(<html><head><meta http-equiv='refresh' content='0;url=/'></head></html>)
 })
 
 # Listen on port 80 (standard HTTP port)

@@ -149,6 +149,7 @@ private:
     Token       errorToken(const std::string& message);
     void        skipWhitespaceAndComments();
     Token       stringToken();
+    Token       htmlToken(const std::string& tag_name);
     Token       templateToken();
     Token       numberToken();
     Token       identifierToken();

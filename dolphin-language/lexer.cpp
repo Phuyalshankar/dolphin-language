@@ -2,6 +2,7 @@
 #include <cctype>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_set>
 
 // ─── ANSI colour helpers for error output ────────────────────────────────────
 static std::string ansi_red(const std::string& s)  { return "\033[1;31m" + s + "\033[0m"; }
@@ -214,6 +215,99 @@ Token Lexer::identifierToken() {
     return makeToken(identifierType());
 }
 
+Token Lexer::htmlToken(const std::string& tag_name) {
+    std::string content = "<" + tag_name;
+    int nest_level = 1;
+    bool in_style = (tag_name == "style");
+    bool in_script = (tag_name == "script");
+    bool has_expressions = false;
+
+    while (!isAtEnd()) {
+        if (peek() == '/' && peekNext() == '>') {
+            content += "/>";
+            advance(); advance();
+            nest_level--;
+            if (nest_level == 0) {
+                break;
+            }
+            continue;
+        }
+
+        if (peek() == '<') {
+            if (peekNext() == '/') {
+                size_t temp = current + 2;
+                std::string close_tag;
+                while (temp < source.length() && std::isalnum((unsigned char)source[temp])) {
+                    close_tag += source[temp];
+                    temp++;
+                }
+                std::string close_tag_lower = close_tag;
+                for (char &c : close_tag_lower) c = std::tolower(c);
+                std::string tag_name_lower = tag_name;
+                for (char &c : tag_name_lower) c = std::tolower(c);
+
+                if (temp < source.length() && source[temp] == '>' && close_tag_lower == tag_name_lower) {
+                    content += "</" + close_tag + ">";
+                    current = temp + 1;
+                    nest_level--;
+                    if (nest_level == 0) {
+                        break;
+                    }
+                    continue;
+                }
+                if (close_tag_lower == "style") in_style = false;
+                if (close_tag_lower == "script") in_script = false;
+            } else {
+                size_t temp = current + 1;
+                std::string open_tag;
+                while (temp < source.length() && std::isalnum((unsigned char)source[temp])) {
+                    open_tag += source[temp];
+                    temp++;
+                }
+                std::string open_tag_lower = open_tag;
+                for (char &c : open_tag_lower) c = std::tolower(c);
+                std::string tag_name_lower = tag_name;
+                for (char &c : tag_name_lower) c = std::tolower(c);
+
+                if (open_tag_lower == tag_name_lower) {
+                    nest_level++;
+                }
+                if (open_tag_lower == "style") in_style = true;
+                if (open_tag_lower == "script") in_script = true;
+            }
+        }
+
+        char c = advance();
+        if (c == '{' && !in_style && !in_script) {
+            content += "${";
+            has_expressions = true;
+        } else {
+            content += c;
+        }
+    }
+
+    std::string value;
+    if (has_expressions) {
+        value = "`";
+        for (char c : content) {
+            if (c == '`') value += "\\`";
+            else value += c;
+        }
+        value += "`";
+        return Token{ TOKEN_TEMPLATE, value, line, column };
+    } else {
+        value = "\"";
+        for (char c : content) {
+            if (c == '"') value += "\\\"";
+            else if (c == '\n') value += "\\n";
+            else if (c == '\r') value += "\\r";
+            else value += c;
+        }
+        value += "\"";
+        return Token{ TOKEN_STRING, value, line, column };
+    }
+}
+
 // ─── Main tokenize loop ───────────────────────────────────────────────────────
 std::vector<Token> Lexer::tokenize() {
     std::vector<Token> tokens;
@@ -329,7 +423,29 @@ std::vector<Token> Lexer::tokenize() {
                 break;
 
             // '<' '<<' '<<=' '<='
-            case '<':
+            case '<': {
+                // Check if it is a JSX/HTML literal
+                size_t temp = current;
+                std::string tag_name;
+                while (temp < source.length() && isalnum(source[temp])) {
+                    tag_name += source[temp];
+                    temp++;
+                }
+
+                static const std::unordered_set<std::string> html_tags = {
+                    "html", "head", "body", "h1", "h2", "h3", "h4", "h5", "h6",
+                    "div", "p", "span", "a", "button", "style", "meta", "title",
+                    "link", "script", "img", "input", "ul", "ol", "li", "br", "hr",
+                    "table", "tr", "td", "th", "form", "label", "iframe", "section",
+                    "header", "footer", "nav", "main", "aside"
+                };
+
+                if (!tag_name.empty() && html_tags.count(tag_name)) {
+                    current = temp; // skip tag name in lexer stream
+                    tokens.push_back(htmlToken(tag_name));
+                    break;
+                }
+
                 if (match('<')) {
                     if (match('=')) tokens.push_back(makeToken(TOKEN_SHL_ASSIGN));
                     else            tokens.push_back(makeToken(TOKEN_SHL));
@@ -339,6 +455,7 @@ std::vector<Token> Lexer::tokenize() {
                     tokens.push_back(makeToken(TOKEN_LT));
                 }
                 break;
+            }
 
             // '>' '>>' '>>=' '>='
             case '>':
