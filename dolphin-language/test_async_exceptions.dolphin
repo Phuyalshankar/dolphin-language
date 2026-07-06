@@ -1,0 +1,47 @@
+# Dolphin Async-Await and Try-Catch-Finally Test Suite
+
+print("--- Starting Dolphin Async-Await & Exception Handling Test ---")
+
+# 1. Testing Exception Handling (try-catch-finally)
+print("\n1. Testing Try-Catch-Finally exception flow:")
+try {
+    print("  [Try] Entering try block...")
+    throw "Oops! Something went wrong."
+    print("  [Try] This line should NOT run!")
+} catch (err) {
+    print("  [Catch] Exception caught: " + err)
+} finally {
+    print("  [Finally] Finally block executed successfully!")
+}
+
+# 2. Testing Async-Await
+print("\n2. Testing Async-Await resolution:")
+
+async fn fetchDatabaseRecord(id) {
+    print("  [Async DB] Fetching record for ID: " + id)
+    Dolphin.sleep(300) # Simulate database query latency
+    return "User_Record_#" + id
+}
+
+async fn runSmartFlow() {
+    print("  [Flow] Starting async flow...")
+    
+    # Await resolution
+    result = await fetchDatabaseRecord(101)
+    print("  [Flow] Await result received: " + result)
+    
+    # 3. Testing Async Arrow Functions
+    print("\n3. Testing Async Arrow Lambdas:")
+    doubleAsync = async x => {
+        Dolphin.sleep(100)
+        return x * 2
+    }
+    
+    val = await doubleAsync(25)
+    print("  [Flow] Async arrow lambda returned: " + val)
+}
+
+runSmartFlow()
+# Give time for the async background thread to complete
+Dolphin.sleep(1000)
+print("\n--- Test Complete ---")

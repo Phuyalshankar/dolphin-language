@@ -1,0 +1,24 @@
+# Dolphin GPIO hardware pins test suite
+
+print("--- Starting Dolphin GPIO Hardware Pins Test ---")
+
+# Configure Pin modes
+GPIO.mode(2, GPIO.OUTPUT)       # Set Pin 2 (LED Pin) as Output
+GPIO.mode(4, GPIO.INPUT)        # Set Pin 4 (Button Pin) as Input
+GPIO.mode(5, GPIO.INPUT_PULLUP) # Set Pin 5 as Input with pullup resistor
+
+# Digital Writes
+GPIO.write(2, GPIO.HIGH) # Set Pin 2 HIGH
+val = GPIO.read(2)
+print("Pin 2 state: " + val) # Should print "1" (HIGH)
+
+GPIO.write(2, GPIO.LOW)  # Set Pin 2 LOW
+val2 = GPIO.read(2)
+print("Pin 2 state: " + val2) # Should print "0" (LOW)
+
+# Analog Operations
+analog_val = GPIO.analogRead(34) # Read analog voltage value
+print("Pin 34 Analog voltage value: " + analog_val)
+
+# PWM duty cycle write
+GPIO.analogWrite(12, 128) # Set Pin 12 PWM duty cycle to 128 (50% duty cycle)

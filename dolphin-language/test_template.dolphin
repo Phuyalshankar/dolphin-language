@@ -1,0 +1,23 @@
+# Dolphin Server-Side HTML template rendering test
+
+print("--- Starting HTML Template Engine Test ---")
+
+# 1. Define EJS-like Handlebars template string
+tpl = "<html>\n  <body>\n    <h1>Welcome, {{user.name}}!</h1>\n    {{if show_message}}\n      <p>Notification: {{message}}</p>\n    {{endif}}\n    \n    <h3>Shopping List:</h3>\n    <ul>\n      {{loop items as item}}\n        <li>Item: {{item}}</li>\n      {{endloop}}\n    </ul>\n  </body>\n</html>"
+
+# 2. Define mock data object
+data = {
+    "user": {
+        "name": "Shankar Phuyal"
+    },
+    "show_message": true,
+    "message": "Your database has been updated.",
+    "items": ["ESP32 DevKit", "Modbus Sensor", "HL7 Simulator Cable"]
+}
+
+# 3. Render HTML output
+rendered_html = Template.render(tpl, data)
+print("\n[Rendered Output]:")
+print(rendered_html)
+
+print("\n--- Test Complete ---")

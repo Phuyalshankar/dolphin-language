@@ -1,0 +1,114 @@
+# Dolphin High-Performance Matrix & AI/ML Test Suite
+
+print("--- Starting Dolphin Matrix & Neural Network Training Test ---")
+
+# 1. Verify standard Matrix creation and properties
+print("\n1. Testing Matrix creation:")
+m = Matrix.create(2, 3, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+print("Matrix m (shape 2x3):")
+print(m)
+
+print("\nMatrix m.transpose() (shape 3x2):")
+print(m.transpose())
+
+# 2. Verify matrix multiplication
+m2 = Matrix.create(3, 2, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+print("\nMatrix m2 (shape 3x2):")
+print(m2)
+
+product = m.matmul(m2)
+print("\nMatrix product = m.matmul(m2) (shape 2x2):")
+print(product)
+
+# 3. Train a Multi-Layer Perceptron (Neural Network) to solve the XOR gate logic table:
+# Inputs:
+# 0 XOR 0 = 0
+# 0 XOR 1 = 1
+# 1 XOR 0 = 1
+# 1 XOR 1 = 0
+print("\n2. Training Neural Network to solve XOR logical gate:")
+
+# Training inputs (4 samples, 2 features)
+inputs = Matrix.create(4, 2, [
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0]
+])
+
+# Target outputs (4 samples, 1 label)
+targets = Matrix.create(4, 1, [
+    [0.0],
+    [1.0],
+    [1.0],
+    [0.0]
+])
+
+# Initialize Multi-Layer Dense weights & biases randomly
+# Layer 1: 2 inputs -> 3 hidden neurons
+layer1 = ML.dense(2, 3)
+# Layer 2: 3 hidden neurons -> 1 output neuron
+layer2 = ML.dense(3, 1)
+
+learning_rate = 0.5
+epochs = 3000
+
+# Matrix of ones to perform column summing for biases update
+ones = Matrix.ones(1, 4)
+
+print("Starting training loop...")
+loop (epoch, 0, epochs) {
+    # --- Forward Pass ---
+    # Layer 1
+    z1 = inputs.matmul(layer1["weights"]) + layer1["biases"] # shape: 4x3
+    a1 = z1.sigmoid() # activation: 4x3
+    
+    # Layer 2
+    z2 = a1.matmul(layer2["weights"]) + layer2["biases"] # shape: 4x1
+    a2 = z2.sigmoid() # activation: 4x1
+    
+    # Calculate Mean Squared Error Loss
+    error = targets - a2
+    loss_matrix = error * error
+    
+    if (epoch % 500 == 0) {
+        loss_val = 0.0
+        arr = loss_matrix.toArray()
+        loop (row in arr) {
+            loss_val = loss_val + row[0]
+        }
+        print("  Epoch " + epoch + " -> Mean Squared Error: " + (loss_val / 4.0))
+    }
+    
+    # --- Backpropagation ---
+    # Layer 2
+    d_a2 = error * -1.0 # shape: 4x1
+    d_z2 = d_a2 * a2.sigmoidDerivative() # shape: 4x1
+    
+    d_weights2 = a1.transpose().matmul(d_z2) # shape: 3x1
+    d_biases2 = ones.matmul(d_z2) # shape: 1x1
+    
+    # Layer 1
+    d_a1 = d_z2.matmul(layer2["weights"].transpose()) # shape: 4x3
+    d_z1 = d_a1 * a1.sigmoidDerivative() # shape: 4x3
+    
+    d_weights1 = inputs.transpose().matmul(d_z1) # shape: 2x3
+    d_biases1 = ones.matmul(d_z1) # shape: 1x3
+    
+    # --- Gradient Descent Weights & Biases Updates ---
+    layer2["weights"] = layer2["weights"] - (d_weights2 * learning_rate)
+    layer2["biases"] = layer2["biases"] - (d_biases2 * learning_rate)
+    
+    layer1["weights"] = layer1["weights"] - (d_weights1 * learning_rate)
+    layer1["biases"] = layer1["biases"] - (d_biases1 * learning_rate)
+}
+
+# 4. Print final model predictions after training
+print("\n3. Final trained predictions:")
+z1 = inputs.matmul(layer1["weights"]) + layer1["biases"]
+a1 = z1.sigmoid()
+z2 = a1.matmul(layer2["weights"]) + layer2["biases"]
+predictions = z2.sigmoid()
+print(predictions)
+
+print("\n--- Test Complete ---")

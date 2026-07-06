@@ -1,0 +1,39 @@
+# Dolphin native IoT and industrial hardware protocols test suite
+
+print("--- Starting Dolphin IoT Hardware Test ---")
+
+# 1. WiFi Connection
+WiFi.connect("Dolphin_AP", "SecurePassword")
+print("WiFi Status: " + WiFi.status())
+print("WiFi IP: " + WiFi.ip())
+
+# 2. Bluetooth Serial Connection
+bt = Bluetooth.Serial()
+bt.on("connect", fn(msg) => {
+    print("  [BT Event] Connection status: " + msg)
+})
+bt.on("data", fn(data) => {
+    print("  [BT Event] Received Serial Data: " + data)
+    bt.write("ACK serial BT\n")
+})
+bt.start("ESP32_BT")
+
+# 3. Zigbee Network Controller
+zb = Zigbee.start(11, 6700) # PAN ID: 6700
+zb.on("message", fn(msg) => {
+    print("  [Zigbee Event] Message from " + msg["from"] + ": temperature = " + msg["payload"]["temp"] + " C")
+    zb.send(msg["from"], "ACK zigbee")
+})
+
+# 4. CAN Bus Engine diagnostics
+can = CAN.begin(500)
+can.on("message", fn(frame) => {
+    print("  [CAN Event] Received Frame ID: " + frame["id"] + ", Data size: " + frame["data"].size())
+    can.write(2016, [1, 2, 3]) # Transmit OBD query ACK
+})
+
+# 5. Modbus RTU PLC communication
+modbus = Modbus.Client("COM3", 9600)
+registers = modbus.readHoldingRegisters(1, 40001, 3)
+print("Modbus read holding registers: " + registers)
+modbus.writeSingleRegister(1, 40005, 125)

@@ -1,60 +1,70 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <stdexcept>
-#include "token.hpp"
+#include "lexer.hpp"
 #include "ast.hpp"
+#include <memory>
+#include <vector>
 
-struct ParseError : std::runtime_error {
-    int line;
-    ParseError(int l, const std::string& msg)
-        : std::runtime_error("Parse error at line " + std::to_string(l) + ": " + msg), line(l) {}
+// Operator precedence levels (Pratt parser)
+enum Precedence {
+    PREC_NONE,
+    PREC_ASSIGNMENT,  // = += -= *= /= %= <<= >>= &= |= ^=
+    PREC_PIPE,        // |>
+    PREC_OR_OR,       // ||
+    PREC_AND_AND,     // &&
+    PREC_OR,          // |
+    PREC_XOR,         // ^
+    PREC_AND,         // &
+    PREC_EQUALITY,    // == !=
+    PREC_COMPARISON,  // < > <= >=
+    PREC_SHIFT,       // << >>
+    PREC_TERM,        // + -
+    PREC_FACTOR,      // * / %
+    PREC_UNARY,       // ! ~ - ++ --
+    PREC_EXPONENT,    // **
+    PREC_CALL,        // . () []
+    PREC_PRIMARY
 };
 
 class Parser {
-public:
-    explicit Parser(std::vector<Token> tokens);
-    Program parseProgram();
-
 private:
-    std::vector<Token> toks;
-    size_t pos = 0;
+    std::vector<Token> tokens;
+    size_t             current = 0;
+    std::string        filepath;
 
-    const Token& peek(int offset = 0) const;
-    const Token& advance();
-    bool check(TokType t) const;
-    bool match(TokType t);
-    const Token& expect(TokType t, const std::string& what);
-    [[noreturn]] void error(const std::string& msg) const;
+    bool    isAtEnd()  const;
+    Token   peek()     const;
+    Token   previous() const;
+    Token   advance();
+    bool    check(TokenType type) const;
+    bool    match(TokenType type);
+    Token   consume(TokenType type, const std::string& message);
+    void    synchronize();
+    bool    isArrowLambda();
 
-    StmtPtr parseStatement();
-    Block parseBlock();
-    StmtPtr parseIf();
-    StmtPtr parseWhile();
-    StmtPtr parseLoop();
-    StmtPtr parseFnDecl();
-    StmtPtr parseReturn();
-    StmtPtr parseImport();
+    // Statement parsers
+    std::unique_ptr<Stmt>       statement();
+    std::unique_ptr<Stmt>       funcDeclaration(bool is_async = false);
+    std::unique_ptr<Stmt>       classDeclaration();
+    std::unique_ptr<Stmt>       ifStatement();
+    std::unique_ptr<Stmt>       loopStatement();
+    std::unique_ptr<Stmt>       returnStatement();
+    std::unique_ptr<Stmt>       importStatement();
+    std::unique_ptr<Stmt>       tryCatchStatement();
+    std::unique_ptr<Stmt>       throwStatement();
+    std::unique_ptr<Stmt>       expressionStatement();
+    std::unique_ptr<BlockStmt>  block();
 
-    ExprPtr parseExpression();
-    ExprPtr parseAssignment();
-    ExprPtr parseLogicalOr();
-    ExprPtr parseLogicalAnd();
-    ExprPtr parseBitwiseOr();
-    ExprPtr parseBitwiseXor();
-    ExprPtr parseBitwiseAnd();
-    ExprPtr parseEquality();
-    ExprPtr parseRelational();
-    ExprPtr parseShift();
-    ExprPtr parseAdditive();
-    ExprPtr parseMultiplicative();
-    ExprPtr parseExponent();
-    ExprPtr parseUnary();
-    ExprPtr parsePostfix();
-    ExprPtr parsePrimary();
-    ExprPtr parseArrayLiteral();
-    ExprPtr parseObjectLiteral();
-    ExprPtr parseLambda();
-    std::vector<std::string> parseParamList();
-    std::vector<ExprPtr> parseArgList();
+    // Expression parsers (Pratt)
+    std::unique_ptr<Expr> expression(Precedence precedence = PREC_NONE);
+    std::unique_ptr<Expr> prefixExpr();
+    std::unique_ptr<Expr> infixExpr(std::unique_ptr<Expr> lhs, Precedence precedence);
+
+    Precedence            getPrecedence(TokenType type) const;
+    std::unique_ptr<Expr> arrayLiteral();
+    std::unique_ptr<Expr> objectLiteral();
+    std::unique_ptr<Expr> lambdaExpression(bool is_async = false);
+
+public:
+    Parser(const std::vector<Token>& tokens, const std::string& filepath = "");
+    std::unique_ptr<BlockStmt> parse();
 };

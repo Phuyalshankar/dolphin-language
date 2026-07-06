@@ -1,0 +1,42 @@
+# Dolphin HL7 Medical Data Exchange Test
+
+print("--- Starting Dolphin HL7 Medical Data Exchange Test ---")
+
+# 1. Mock HL7 v2 ADT Patient Admit Message framed in MLLP
+raw_mllp = "\x0bMSH|^~\\&|LAB_APP|LAB_FAC|ADT_APP|ADT_FAC|202607051200||ADT^A08|MSG001|P|2.3\rPID|1||10006579^^^MRN||DOE^JOHN^MIDDLE||19800101|M\rPV1|1|I|2000^2001^01\r\x1c\r"
+
+# 2. Unframe and verify MLLP framing strip
+hl7_message = HL7.unframe(raw_mllp)
+print("Unframed HL7 Message:\n" + hl7_message)
+
+# 3. Parse HL7 fields and segments
+parsed = HL7.parse(hl7_message)
+print("Parsed HL7 details:")
+print("  Sending Application: " + parsed["MSH"][2]) # LAB_APP
+print("  Patient Name: " + parsed["PID"][5][0] + " " + parsed["PID"][5][1]) # DOE JOHN
+print("  Patient MRN: " + parsed["PID"][3][0]) # 10006579
+
+# 4. Generate HL7 Acknowledgement (ACK)
+ack_msg = HL7.ack(parsed)
+print("\nGenerated HL7 ACK Message:\n" + ack_msg)
+
+# 5. Test HL7 Event-Driven Server
+hl7_server = HL7.Server()
+hl7_server.on("message", fn(event) => {
+    print("  [HL7 Server Event] Successfully processed message PID: " + event["message"]["PID"][3][0])
+})
+hl7_server.start(6001)
+
+# Simulate sending an HL7 message from a client device
+Dolphin.async(fn() => {
+    Dolphin.sleep(500) # delay for server setup
+    print("[HL7 Client] Connecting and sending HL7 ADT message over MLLP...")
+    
+    client = TCP.connect("127.0.0.1", 6001)
+    client.on("data", fn(data) => {
+        unframed_ack = HL7.unframe(data)
+        print("[HL7 Client Received ACK]:\n" + unframed_ack)
+        client.close()
+    })
+    client.write(HL7.frame(hl7_message))
+})
