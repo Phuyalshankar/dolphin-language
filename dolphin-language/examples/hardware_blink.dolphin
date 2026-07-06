@@ -1,0 +1,26 @@
+# Real-hardware example for `dolphin flash`.
+# Blinks an LED on pin 2 and reacts to a button on pin 4.
+# Flash it with, for example:
+#   dolphin flash examples/hardware_blink.dolphin esp32 /dev/ttyUSB0
+
+pin led = pin(2, OUTPUT)
+pin button = pin(4, INPUT)
+
+button.on("change", fn(state) {
+    if state == HIGH {
+        print("Button pressed")
+        led.write(HIGH)
+    } else {
+        print("Button released")
+        led.write(LOW)
+    }
+})
+
+print("Hardware blink example started")
+
+loop {
+    led.write(HIGH)
+    sleep(500)
+    led.write(LOW)
+    sleep(500)
+}

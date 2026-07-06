@@ -1,0 +1,67 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "dolphinFile",
+      "type": "promptString",
+      "description": "Path to the .dolphin file to flash (relative to this folder)",
+      "default": "examples/hardware_blink.dolphin"
+    },
+    {
+      "id": "dolphinBoard",
+      "type": "pickString",
+      "description": "Target board",
+      "options": ["esp32", "esp8266", "uno", "nano", "mega", "stm32"],
+      "default": "esp32"
+    },
+    {
+      "id": "dolphinPort",
+      "type": "promptString",
+      "description": "Serial port (e.g. /dev/ttyUSB0, /dev/cu.usbserial-xxxx, COM3)",
+      "default": "/dev/ttyUSB0"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Dolphin: Build CLI",
+      "type": "shell",
+      "command": "make",
+      "args": ["all"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dolphin: Flash to Board",
+      "type": "shell",
+      "command": "./dolphin",
+      "args": [
+        "flash",
+        "${input:dolphinFile}",
+        "${input:dolphinBoard}",
+        "${input:dolphinPort}"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["Dolphin: Build CLI"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Dolphin: Run (PC simulation)",
+      "type": "shell",
+      "command": "./dolphin",
+      "args": ["run", "${input:dolphinFile}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": ["Dolphin: Build CLI"],
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

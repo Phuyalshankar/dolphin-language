@@ -34,6 +34,41 @@ void Codegen::generate(const Program& program, std::stringstream& global_stream,
     }
 }
 
+void Codegen::generateHardware(const Program& program, std::stringstream& global_stream, std::stringstream& setup_stream, std::stringstream& loop_stream) {
+    scopeStack.clear();
+    globalOut = &global_stream;
+    pushScope(); // global scope
+
+    std::vector<const Stmt*> topLevel;
+    for (const auto& stmtPtr : program) {
+        const Stmt& s = *stmtPtr;
+        if (s.kind == StmtKind::FnDecl) {
+            renderFnDecl(static_cast<const FnDeclStmt&>(s), global_stream);
+            declare(static_cast<const FnDeclStmt&>(s).name);
+        } else if (s.kind == StmtKind::Import) {
+            continue;
+        } else {
+            topLevel.push_back(&s);
+        }
+    }
+
+    const Block* loopBody = nullptr;
+    if (!topLevel.empty() && topLevel.back()->kind == StmtKind::LoopInfinite) {
+        loopBody = &static_cast<const LoopInfiniteStmt&>(*topLevel.back()).body;
+        topLevel.pop_back();
+    }
+
+    for (const Stmt* s : topLevel) {
+        renderStmt(*s, setup_stream);
+    }
+
+    if (loopBody) {
+        pushScope();
+        renderBlock(*loopBody, loop_stream);
+        popScope();
+    }
+}
+
 void Codegen::renderFnDecl(const FnDeclStmt& fn, std::ostream& out) {
     out << "var " << fn.name << "(";
     for (size_t i = 0; i < fn.params.size(); ++i) {
@@ -84,7 +119,16 @@ void Codegen::renderStmt(const Stmt& s, std::ostream& out) {
         case StmtKind::PinDecl: {
             const auto& p = static_cast<const PinDeclStmt&>(s);
             declare(p.name);
-            out << "pin " << p.name << " = " << renderExpr(*p.value) << ";\n";
+            std::string rhs = renderExpr(*p.value);
+            if (scopeStack.size() == 1 && globalOut) {
+                // True top-level pin: must be a real C++ global so that
+                // separately-generated functions (e.g. hardware's loop())
+                // can see it too.
+                *globalOut << "pin " << p.name << ";\n";
+                out << p.name << " = " << rhs << ";\n";
+            } else {
+                out << "pin " << p.name << " = " << rhs << ";\n";
+            }
             break;
         }
         case StmtKind::If: {

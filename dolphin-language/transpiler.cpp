@@ -45,14 +45,27 @@ static Program loadFile(const std::string& filepath) {
     return parser.parseProgram();
 }
 
+static void indentInto(std::ofstream& outfile, const std::string& streamContent) {
+    std::string line;
+    std::stringstream ss(streamContent);
+    while (std::getline(ss, line)) {
+        if (!line.empty()) {
+            outfile << "    " << line << "\n";
+        } else {
+            outfile << "\n";
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <input.dolphin> <output.cpp>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <input.dolphin> <output.cpp> [hardware]" << std::endl;
         return 1;
     }
 
     std::string inputPath = argv[1];
     std::string outputPath = argv[2];
+    bool hardwareTarget = (argc >= 4 && std::string(argv[3]) == "hardware");
 
     try {
         Program mainProgram = loadFile(inputPath);
@@ -63,36 +76,42 @@ int main(int argc, char* argv[]) {
         Program flattened;
         flattenImportsInto(flattened, mainProgram, getDirectoryPath(inputPath), imported_files);
 
-        std::stringstream global_stream;
-        std::stringstream main_stream;
-
-        Codegen codegen;
-        codegen.generate(flattened, global_stream, main_stream);
-
         std::ofstream outfile(outputPath);
         if (!outfile.is_open()) {
             std::cerr << "Error opening output file: " << outputPath << std::endl;
             return 1;
         }
 
-        outfile << "#include \"dolphin_runtime.hpp\"\n\n";
-        outfile << global_stream.str() << "\n";
-        outfile << "int main() {\n";
-        outfile << "    std::srand(std::time(nullptr));\n";
+        Codegen codegen;
 
-        std::string main_line;
-        std::stringstream main_output(main_stream.str());
-        while (std::getline(main_output, main_line)) {
-            if (!main_line.empty()) {
-                outfile << "    " << main_line << "\n";
-            } else {
-                outfile << "\n";
-            }
+        if (hardwareTarget) {
+            std::stringstream global_stream, setup_stream, loop_stream;
+            codegen.generateHardware(flattened, global_stream, setup_stream, loop_stream);
+
+            outfile << "#include \"dolphin_hardware_runtime.hpp\"\n\n";
+            outfile << global_stream.str() << "\n";
+            outfile << "void setup() {\n";
+            outfile << "    Serial.begin(115200);\n";
+            indentInto(outfile, setup_stream.str());
+            outfile << "}\n\n";
+            outfile << "void loop() {\n";
+            indentInto(outfile, loop_stream.str());
+            outfile << "    DolphinRuntime::pollPins();\n";
+            outfile << "}\n";
+        } else {
+            std::stringstream global_stream;
+            std::stringstream main_stream;
+            codegen.generate(flattened, global_stream, main_stream);
+
+            outfile << "#include \"dolphin_runtime.hpp\"\n\n";
+            outfile << global_stream.str() << "\n";
+            outfile << "int main() {\n";
+            outfile << "    std::srand(std::time(nullptr));\n";
+            indentInto(outfile, main_stream.str());
+            outfile << "    DolphinRuntime::runEventLoop();\n";
+            outfile << "    return 0;\n";
+            outfile << "}\n";
         }
-
-        outfile << "    DolphinRuntime::runEventLoop();\n";
-        outfile << "    return 0;\n";
-        outfile << "}\n";
 
         outfile.close();
         std::cout << "Transpilation complete! Output saved to: " << outputPath << std::endl;

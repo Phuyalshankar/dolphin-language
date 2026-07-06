@@ -73,3 +73,19 @@ Yo **early prototype stage** ho (proof-of-concept). Core idea (custom syntax →
 - Feature richness (jo aile test file ma dekhincha): ramro start, tara production-grade hunu lagi dherai polish chaina.
 
 **Sabaibhanda pahila garna sakine kaam**: real lexer/parser/AST banaune, ani README + error messages thik parne. Tyo pachi standard library ra tooling ma focus garna milcha.
+
+## Real Hardware Flashing (ESP32 / ESP8266 / STM32 / Arduino) — Naya Feature
+
+Aile samma "run" command le sirf **PC simulation** garthyo (g++ le compile garera host machine ma chalaune, Pin class simulate matra thiyo). Aba `dolphin flash` command le **real microcontroller ma flash** garna milcha.
+
+**Kasari kaam garcha:**
+- `dolphin flash <file.dolphin> <board> <port>` — naya hardware codegen target (`dolphin_hardware_runtime.hpp`) use garera `.ino` sketch generate garcha (real `pinMode`/`digitalWrite`/`digitalRead`, simulated Pin hoina), ani `arduino-cli compile` + `arduino-cli upload` chalauncha.
+- Top-level `loop { }` block feature bhaye tyo Arduino ko real `loop()` function ma jancha (repeatedly call huncha); baaki sabai code `setup()` ma euta patak matra chalcha.
+- Supported boards: `esp32`, `esp8266`, `uno`, `nano`, `mega`, `stm32` (FQBN mapping `dolphin.cpp` ma cha).
+
+**IMPORTANT — yo sirf local machine ma matra chalcha, Replit cloud ma hoina:**
+- Replit ko cloud sandbox le USB/serial port access garna sakdaina, tesले flashing **VS Code ma tapaiko aafnai computer ma** garnu parcha (board USB le connect gareko avstha ma).
+- Requirement: `arduino-cli` install garnu parcha (https://arduino.github.io/arduino-cli/latest/installation/), ani related board core install (e.g. `arduino-cli core install esp32:esp32`).
+- `.vscode/tasks.json` ma "Dolphin: Flash to Board" task already cha — VS Code ma `Terminal > Run Task` bata board ra serial port select garera flash garna milcha (yo repo GitHub bata clone/pull garepachi).
+
+**Known limitation:** stock Arduino Uno/Nano (plain AVR, avr-gcc) ma full C++ STL (std::string/std::function) support chaina, tesले `var` ko dynamic-typing runtime tyaha compile nahuna sakcha — best-effort matra. ESP32/ESP8266/STM32 ma full libstdc++ cha, tyo primary well-supported target ho.
