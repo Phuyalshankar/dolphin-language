@@ -551,7 +551,12 @@ public:
                 var res(var::TYPE_OBJECT);
                 res["send"] = var([](const std::vector<var>& args) -> var {
                     if (args.size() > 0 && global_esp_web_server) {
-                        global_esp_web_server->send(200, "text/plain", args[0].toString().c_str());
+                        std::string content = args[0].toString();
+                        std::string type = "text/plain";
+                        if (content.find("<html") != std::string::npos || content.find("<HTML") != std::string::npos || content.find("<!DOCTYPE") != std::string::npos) {
+                            type = "text/html";
+                        }
+                        global_esp_web_server->send(200, type.c_str(), content.c_str());
                     }
                     return var();
                 });
@@ -582,7 +587,12 @@ public:
                 var res(var::TYPE_OBJECT);
                 res["send"] = var([](const std::vector<var>& args) -> var {
                     if (args.size() > 0 && global_esp_web_server) {
-                        global_esp_web_server->send(200, "text/plain", args[0].toString().c_str());
+                        std::string content = args[0].toString();
+                        std::string type = "text/plain";
+                        if (content.find("<html") != std::string::npos || content.find("<HTML") != std::string::npos || content.find("<!DOCTYPE") != std::string::npos) {
+                            type = "text/html";
+                        }
+                        global_esp_web_server->send(200, type.c_str(), content.c_str());
                     }
                     return var();
                 });
