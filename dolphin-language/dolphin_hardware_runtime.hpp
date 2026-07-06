@@ -365,6 +365,12 @@ struct JSONClass {
     std::string stringify(const var& v) { return v.toString(); }
 } JSON;
 
+inline var sleep(const std::vector<var>& args) {
+    if (args.size() > 0) {
+        delay((unsigned long)args[0].toInt());
+    }
+    return var();
+}
 inline var sleep(const var& ms) { delay((unsigned long)ms.toInt()); return var(); }
 
 template<typename... Args>

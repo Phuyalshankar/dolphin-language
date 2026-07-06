@@ -1,0 +1,11 @@
+# Simple blink program for onboard LED on pin 2
+pin led = pin(2, OUTPUT)
+
+print("Starting blink loop on pin 2...")
+
+loop {
+    led.write(HIGH)
+    sleep(1000)
+    led.write(LOW)
+    sleep(1000)
+}
