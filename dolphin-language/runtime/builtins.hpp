@@ -33,6 +33,11 @@ enum PinMode {
 constexpr bool HIGH = true;
 constexpr bool LOW = false;
 
+constexpr bool DOLPHIN_HIGH = true;
+constexpr bool DOLPHIN_LOW = false;
+constexpr PinMode DOLPHIN_INPUT = PIN_INPUT;
+constexpr PinMode DOLPHIN_OUTPUT = PIN_OUTPUT;
+
 class Pin {
 private:
     int pin_num;
@@ -74,7 +79,11 @@ public:
     void on(const var& event, const var& callback) {
         if (event.toString() == "change" && callback.isFunction()) {
             listeners.push_back([callback](var value) mutable {
-                callback(std::vector<var>{value});
+                if (DolphinRuntime::EventLoop::instance().isMainThread()) {
+                    callback(std::vector<var>{value});
+                } else {
+                    DolphinRuntime::EventLoop::instance().queueCallback(callback, {value});
+                }
             });
         }
     }
@@ -103,12 +112,14 @@ struct MathClass {
     var sqrt(const var& v) { return var(std::sqrt(v.toDouble())); }
     var PI = var(3.14159265358979323846);
 } Math;
+static MathClass& DolphinMath = Math;
 
 struct JSONClass {
     std::string stringify(const var& v) {
         return v.toString();
     }
 } JSON;
+static JSONClass& DolphinJSON = JSON;
 
 struct FileClass {
     var read(const var& filename) {
@@ -143,6 +154,69 @@ struct FileClass {
     }
 } File;
 static FileClass DolphinFile;
+
+struct DolphinDateHelper {
+    var operator()(const std::vector<var>& args = {}) const {
+        long long timestamp;
+        if (args.empty()) {
+            auto now = std::chrono::system_clock::now();
+            timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        } else {
+            timestamp = args[0].toInt();
+        }
+        
+        var obj = var(var_object{});
+        obj["year"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            struct std::tm* tm = std::localtime(&t);
+            return var(1900 + tm->tm_year);
+        });
+        obj["month"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            struct std::tm* tm = std::localtime(&t);
+            return var(1 + tm->tm_mon);
+        });
+        obj["day"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            struct std::tm* tm = std::localtime(&t);
+            return var(tm->tm_mday);
+        });
+        obj["hour"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            struct std::tm* tm = std::localtime(&t);
+            return var(tm->tm_hour);
+        });
+        obj["minute"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            struct std::tm* tm = std::localtime(&t);
+            return var(tm->tm_min);
+        });
+        obj["second"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            struct std::tm* tm = std::localtime(&t);
+            return var(tm->tm_sec);
+        });
+        obj["millisecond"] = var([timestamp](const std::vector<var>&) {
+            return var(timestamp % 1000);
+        });
+        obj["getTime"] = var([timestamp](const std::vector<var>&) {
+            return var((double)timestamp);
+        });
+        obj["toString"] = var([timestamp](const std::vector<var>&) {
+            std::time_t t = timestamp / 1000;
+            char buf[100];
+            std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+            return var(std::string(buf));
+        });
+        return obj;
+    }
+    
+    var now() const {
+        auto now = std::chrono::system_clock::now();
+        return var((double)std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    }
+};
+static DolphinDateHelper DolphinDate;
 
 struct ObjectClass {
     var keys(const var& obj) { return obj.keys(); }

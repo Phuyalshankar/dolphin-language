@@ -1,6 +1,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "ast.hpp"
+#include "checker.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -29,6 +30,10 @@ std::string transpile(const std::string& source_path, const std::string& out_pat
     // Parse
     Parser parser(tokens, source_path);
     std::unique_ptr<BlockStmt> ast = parser.parse();
+
+    // Static analysis / type checking
+    StaticAnalyzer analyzer(source_path);
+    analyzer.analyze(ast);
 
     // Codegen
     std::string cpp_code = hardware_target ? generateHardwareCode(ast) : generateCode(ast);

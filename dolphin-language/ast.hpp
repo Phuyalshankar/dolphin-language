@@ -62,6 +62,8 @@ struct CodegenContext {
 
 class ASTNode {
 public:
+    int line = 0;
+    int column = 0;
     virtual ~ASTNode() = default;
     virtual std::string compile(CodegenContext& ctx) const = 0;
 };

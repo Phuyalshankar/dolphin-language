@@ -67,4 +67,17 @@ private:
 public:
     Parser(const std::vector<Token>& tokens, const std::string& filepath = "");
     std::unique_ptr<BlockStmt> parse();
+
+    template <typename T, typename... Args>
+    std::unique_ptr<T> makeNode(Args&&... args) {
+        auto node = std::make_unique<T>(std::forward<Args>(args)...);
+        if (current > 0 && current - 1 < tokens.size()) {
+            node->line = tokens[current - 1].line;
+            node->column = tokens[current - 1].column;
+        } else if (!tokens.empty()) {
+            node->line = tokens.front().line;
+            node->column = tokens.front().column;
+        }
+        return node;
+    }
 };

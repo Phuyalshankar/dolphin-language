@@ -145,8 +145,12 @@ std::string BinaryExpr::compile(CodegenContext& ctx) const {
         auto id = dynamic_cast<IdentifierExpr*>(rhs.get());
         if (id) {
             std::string name = id->name;
+            if (name == "length") {
+                return lhs_str + ".length()";
+            }
             auto lhs_id = dynamic_cast<IdentifierExpr*>(lhs.get());
-            if (lhs_str == "WiFi" || lhs_str == "Bluetooth" || lhs_str == "Zigbee" || 
+            if ((lhs_str.length() >= 7 && lhs_str.substr(0, 7) == "Dolphin") ||
+                lhs_str == "WiFi" || lhs_str == "Bluetooth" || lhs_str == "Zigbee" || 
                 lhs_str == "CAN" || lhs_str == "Modbus" || lhs_str == "HL7" || 
                 lhs_str == "HTTP" || lhs_str == "TCP" || lhs_str == "File" || lhs_str == "Dolphin" || lhs_str == "GPIO" || lhs_str == "Template" ||
                 lhs_str == "Matrix" || lhs_str == "ML") {
@@ -156,11 +160,11 @@ std::string BinaryExpr::compile(CodegenContext& ctx) const {
                 return lhs_str + "." + name;
             }
             static const std::unordered_set<std::string> native_var_methods = {
-                "on", "emit", "once", "off", "listen", "get", "post",
+                "on", "emit", "once", "off", "listen", "get", "post", "serve_static",
                 "push", "add", "size", "has", "trim", "isEven", "isOdd", "keys",
                 "values", "entries", "filter", "map", "forEach", "toInt", "toDouble", "toString",
                 "transpose", "matmul", "sigmoid", "sigmoidDerivative", "relu", "reluDerivative", "toArray",
-                "close", "status", "send", "json"
+                "close", "status", "send", "json", "split", "join", "indexOf", "toLowerCase", "toUpperCase", "substring"
             };
             if (native_var_methods.count(name)) {
                 return lhs_str + "." + name;
@@ -202,7 +206,10 @@ std::string TypeofExpr::compile(CodegenContext& ctx) const {
 
 // ─── NewExpr ─────────────────────────────────────────────────────────────────
 std::string NewExpr::compile(CodegenContext& ctx) const {
-    std::string result = class_name + "(" + compileArgs(args, ctx) + ")";
+    std::string compiled_class_name = class_name;
+    if (class_name == "Date") compiled_class_name = "DolphinDate";
+    else if (class_name == "Pin" || class_name == "pin") compiled_class_name = "Pin";
+    std::string result = compiled_class_name + "(" + compileArgs(args, ctx) + ")";
     return result;
 }
 
@@ -220,6 +227,11 @@ std::string CallExpr::compile(CodegenContext& ctx) const {
         auto* id = dynamic_cast<IdentifierExpr*>(binExpr->rhs.get());
         std::string method_name = id ? id->name : binExpr->rhs->compile(ctx);
         std::string args_code = compileArgs(args, ctx);
+
+        // server.static(dir) — C++ keyword "static" maps to serve_static
+        if (method_name == "static") {
+            return obj_code + ".serve_static(" + compileArgsComma(args, ctx) + ")";
+        }
 
         // Embed File.read at compile time on hardware targets
         if (obj_code == "DolphinFile" && method_name == "read" && ctx.hardware_target && !args.empty()) {
@@ -247,8 +259,15 @@ std::string CallExpr::compile(CodegenContext& ctx) const {
             }
         }
 
+        // Check if object is a pin
+        auto* lhs_id = dynamic_cast<IdentifierExpr*>(binExpr->lhs.get());
+        if (lhs_id && ctx.getDeclaredType(lhs_id->name) == "pin") {
+            return obj_code + "." + method_name + "(" + compileArgsComma(args, ctx) + ")";
+        }
+
         // Check if native namespace
-        if (obj_code == "WiFi" || obj_code == "Bluetooth" || obj_code == "Zigbee" || 
+        if ((obj_code.length() >= 7 && obj_code.substr(0, 7) == "Dolphin") ||
+            obj_code == "WiFi" || obj_code == "Bluetooth" || obj_code == "Zigbee" || 
             obj_code == "CAN" || obj_code == "Modbus" || obj_code == "HL7" || 
             obj_code == "HTTP" || obj_code == "TCP" || obj_code == "File" || 
             obj_code == "Dolphin" || obj_code == "GPIO" || obj_code == "Template" ||
@@ -262,7 +281,11 @@ std::string CallExpr::compile(CodegenContext& ctx) const {
             "push", "add", "size", "has", "trim", "isEven", "isOdd", "keys",
             "values", "entries", "filter", "map", "forEach", "toInt", "toDouble", "toString",
             "transpose", "matmul", "sigmoid", "sigmoidDerivative", "relu", "reluDerivative", "toArray",
-            "close", "status", "send", "json"
+            "close", "status", "send", "json",
+            // HTTP response methods
+            "html", "file", "redirect", "setHeader", "cors",
+            // HTTP server methods
+            "static"
         };
 
         if (native_var_methods.count(method_name)) {
@@ -286,7 +309,7 @@ std::string CallExpr::compile(CodegenContext& ctx) const {
         };
 
         if (arr_methods.count(method_name) || str_methods.count(method_name)) {
-            return obj_code + ".call_method(\"" + method_name + "\", " + args_code + ")";
+            return obj_code + "." + method_name + "(" + compileArgsComma(args, ctx) + ")";
         }
 
         // General: obj["method"](args) or obj.call_method(...)
@@ -323,7 +346,9 @@ std::string CallExpr::compile(CodegenContext& ctx) const {
         callee_code == "dolphin_int"     ||
         callee_code == "dolphin_float"   ||
         callee_code == "dolphin_pow"     ||
-        callee_code == "dolphin_bitnot") {
+        callee_code == "dolphin_bitnot"  ||
+        callee_code == "Pin"             ||
+        callee_code == "pin") {
         // These take direct args  
         if (!args.empty()) {
             std::string flat;
@@ -516,12 +541,28 @@ std::string VarDeclStmt::compile(CodegenContext& ctx) const {
 
 std::string TypedDeclStmt::compile(CodegenContext& ctx) const {
     ctx.declareTyped(name, type_name);
-    std::string init = initializer ? initializer->compile(ctx) : type_name + "()";
+    std::string actual_type = type_name;
+    if (type_name == "const") {
+        actual_type = "const var";
+    } else if (type_name == "int" || type_name == "string" || type_name == "bool" || type_name == "double" || type_name == "float") {
+        actual_type = "var";
+    }
+    
+    std::string init = initializer ? initializer->compile(ctx) : (type_name == "const" ? "var()" : (actual_type == "var" ? "var()" : type_name + "()"));
+    
+    if (type_name == "const") {
+        if (ctx.hardware_target && ctx.scope_stack.size() == 1) {
+            ctx.global_stream << "const var " << name << " = " << init << ";\n";
+            return "";
+        }
+        return "const var " + name + " = " + init + ";\n";
+    }
+    
     if (ctx.hardware_target && ctx.scope_stack.size() == 1) {
-        ctx.global_stream << type_name << " " << name << ";\n";
+        ctx.global_stream << actual_type << " " << name << ";\n";
         return name + " = " + init + ";";
     }
-    return type_name + " " + name + " = " + init + ";\n";
+    return actual_type + " " + name + " = " + init + ";\n";
 }
 
 // ─── AssignStmt ──────────────────────────────────────────────────────────────
@@ -832,6 +873,7 @@ std::string ClassDeclStmt::compile(CodegenContext& ctx) const {
 std::string generateCode(const std::unique_ptr<BlockStmt>& ast) {
     CodegenContext ctx;
     ctx.scope_stack.push_back({ Scope::SCOPE_BLOCK, {}, "" });
+    ctx.typed_scope_stack.push_back({});
 
     std::stringstream ss;
     ss << "// Generated by Dolphin transpiler\n";
@@ -845,6 +887,7 @@ std::string generateCode(const std::unique_ptr<BlockStmt>& ast) {
         ss << "\n";
     }
 
+    ss << "    DolphinRuntime::EventLoop::instance().run();\n";
     ss << "    return 0;\n";
     ss << "}\n";
 
@@ -855,6 +898,7 @@ std::string generateHardwareCode(const std::unique_ptr<BlockStmt>& ast) {
     CodegenContext ctx;
     ctx.hardware_target = true;
     ctx.scope_stack.push_back({ Scope::SCOPE_BLOCK, {}, "" });
+    ctx.typed_scope_stack.push_back({});
 
     std::stringstream global_ss;
     std::stringstream setup_ss;

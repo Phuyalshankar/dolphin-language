@@ -5,11 +5,11 @@ CXXFLAGS = -std=c++17 -O2 -pthread
 
 all: transpiler dolphin
 
-transpiler: transpiler.cpp generator.cpp parser.cpp lexer.cpp utils.cpp
-	$(CXX) $(CXXFLAGS) transpiler.cpp generator.cpp parser.cpp lexer.cpp utils.cpp -o transpiler
+transpiler: transpiler.cpp generator.cpp parser.cpp lexer.cpp utils.cpp checker.cpp
+	$(CXX) $(CXXFLAGS) transpiler.cpp generator.cpp parser.cpp lexer.cpp utils.cpp checker.cpp -o transpiler
 
-dolphin: dolphin.cpp
-	$(CXX) $(CXXFLAGS) dolphin.cpp -o dolphin
+dolphin: dolphin.cpp lexer.cpp parser.cpp generator.cpp repl.cpp utils.cpp checker.cpp
+	$(CXX) $(CXXFLAGS) dolphin.cpp lexer.cpp parser.cpp generator.cpp repl.cpp utils.cpp checker.cpp -o dolphin
 
 # Usage: make run FILE=test.dolphin
 run: all

@@ -169,6 +169,7 @@ struct ReplSession {
 
         CodegenContext ctx;
         ctx.scope_stack.push_back({ Scope::SCOPE_BLOCK, std::set<std::string>() });
+        ctx.typed_scope_stack.push_back({});
         std::stringstream body;
         for (auto& stmt : ast->statements) {
             if (stmt) body << stmt->compile(ctx);

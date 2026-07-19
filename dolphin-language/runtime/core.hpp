@@ -261,6 +261,13 @@ public:
             return res;
         }
         if (type == TYPE_OBJECT) {
+            if (object_val && object_val->count("toString")) {
+                var ts = (*object_val)["toString"];
+                if (ts.isFunction()) {
+                    auto& non_const_ts = const_cast<var&>(ts);
+                    return non_const_ts(std::vector<var>{}).toString();
+                }
+            }
             std::string res = "{";
             if (object_val) {
                 size_t i = 0;
@@ -510,6 +517,22 @@ public:
         return *this;
     }
 
+    var substring(const var& start, const var& end = var()) const {
+        if (type != TYPE_STRING) return var("");
+        long long s = start.toInt();
+        long long len = string_val.length();
+        if (s < 0) s = 0;
+        if (s > len) s = len;
+        long long e = len;
+        if (end.getType() != TYPE_NULL) {
+            e = end.toInt();
+            if (e < 0) e = 0;
+            if (e > len) e = len;
+        }
+        if (s > e) std::swap(s, e);
+        return var(string_val.substr(s, e - s));
+    }
+
     var keys() const {
         var res;
         if (type == TYPE_OBJECT && object_val) {
@@ -539,17 +562,7 @@ public:
         return *this;
     }
 
-    var emit(const std::string& event, const var& data = var()) {
-        if (event_listeners && event_listeners->count(event)) {
-            std::vector<var> current_listeners = (*event_listeners)[event];
-            for (const auto& cb : current_listeners) {
-                if (cb.isFunction()) {
-                    cb(std::vector<var>{data});
-                }
-            }
-        }
-        return *this;
-    }
+    var emit(const std::string& event, const var& data = var());
 
     var off(const std::string& event) {
         if (event_listeners) {
@@ -1125,6 +1138,7 @@ public:
 
     var get(const var& path, const var& cb);
     var post(const var& path, const var& cb);
+    var serve_static(const var& dir);
     var listen(const var& port);
     var write(const var& data);
     var close();

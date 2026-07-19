@@ -1,0 +1,35 @@
+# Test String Manipulation
+print("--- String Methods Test ---")
+s = "  Hello Dolphin Language  "
+print("Trimmed: '" + s.trim() + "'")
+print("Upper: '" + s.toUpperCase() + "'")
+print("Lower: '" + s.toLowerCase() + "'")
+print("Index of 'Dolphin': " + s.indexOf("Dolphin"))
+print("Substring (8, 15): '" + s.substring(8, 15) + "'")
+
+parts = s.trim().split(" ")
+print("Split length: " + parts.size())
+print("First part: " + parts[0])
+print("Joined parts: " + parts.join("-"))
+
+# Test Date API
+print("\n--- Date API Test ---")
+print("Date.now() type: " + type(Date.now()))
+d = new Date()
+print("Year: " + d.year())
+print("Month: " + d.month())
+print("Day: " + d.day())
+print("Hour: " + d.hour())
+print("Minute: " + d.minute())
+print("Second: " + d.second())
+print("String representation: " + d.toString())
+
+# Test Const declaration
+const pi = 3.14159
+print("Constant pi: " + pi)
+
+# Test typed primitive declarations
+int count = 42
+string greet = "Hello!"
+bool active = true
+print("count: " + count + ", greet: " + greet + ", active: " + active)

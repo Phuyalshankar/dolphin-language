@@ -98,14 +98,13 @@ std::unique_ptr<BlockStmt> Parser::parse() {
             synchronize();
         }
     }
-    return std::make_unique<BlockStmt>(std::move(stmts));
+    return makeNode<BlockStmt>(std::move(stmts));
 }
 
 std::unique_ptr<Stmt> Parser::statement() {
     while (match(TOKEN_SEMICOLON)) {}
 
     if (check(TOKEN_IDENTIFIER) &&
-        peek().lexeme == "pin" &&
         current + 2 < tokens.size() &&
         tokens[current + 1].type == TOKEN_IDENTIFIER &&
         tokens[current + 2].type == TOKEN_ASSIGN) {
@@ -113,7 +112,7 @@ std::unique_ptr<Stmt> Parser::statement() {
         std::string name = consume(TOKEN_IDENTIFIER, "Expect variable name after type.").lexeme;
         consume(TOKEN_ASSIGN, "Expect '=' after typed variable name.");
         auto initializer = expression();
-        return std::make_unique<TypedDeclStmt>(type_name, name, std::move(initializer));
+        return makeNode<TypedDeclStmt>(type_name, name, std::move(initializer));
     }
     if (match(TOKEN_FN)) return funcDeclaration(false);
     if (match(TOKEN_ASYNC)) {
@@ -128,8 +127,8 @@ std::unique_ptr<Stmt> Parser::statement() {
     if (match(TOKEN_IMPORT))   return importStatement();
     if (match(TOKEN_TRY))      return tryCatchStatement();
     if (match(TOKEN_THROW))    return throwStatement();
-    if (match(TOKEN_BREAK))    return std::make_unique<BreakStmt>();
-    if (match(TOKEN_CONTINUE)) return std::make_unique<ContinueStmt>();
+    if (match(TOKEN_BREAK))    return makeNode<BreakStmt>();
+    if (match(TOKEN_CONTINUE)) return makeNode<ContinueStmt>();
     return expressionStatement();
 }
 
@@ -149,7 +148,7 @@ std::unique_ptr<Stmt> Parser::funcDeclaration(bool is_async) {
     consume(TOKEN_RPAREN, "Expected ')' after parameters.");
     consume(TOKEN_LBRACE,  "Expected '{' to open function body.");
     auto body = block();
-    return std::make_unique<FuncDeclStmt>(name.lexeme, args, std::move(body), is_async);
+    return makeNode<FuncDeclStmt>(name.lexeme, args, std::move(body), is_async);
 }
 
 // ─── Class declaration ───────────────────────────────────────────────────────
@@ -189,7 +188,7 @@ std::unique_ptr<Stmt> Parser::classDeclaration() {
     }
     consume(TOKEN_RBRACE, "Expected '}' to close class body.");
 
-    return std::make_unique<ClassDeclStmt>(name.lexeme, base_class, std::move(methods));
+    return makeNode<ClassDeclStmt>(name.lexeme, base_class, std::move(methods));
 }
 
 // ─── Block ───────────────────────────────────────────────────────────────────
@@ -199,7 +198,7 @@ std::unique_ptr<BlockStmt> Parser::block() {
         stmts.push_back(statement());
     }
     consume(TOKEN_RBRACE, "Expected '}' to close block.");
-    return std::make_unique<BlockStmt>(std::move(stmts));
+    return makeNode<BlockStmt>(std::move(stmts));
 }
 
 // ─── If statement ────────────────────────────────────────────────────────────
@@ -217,7 +216,7 @@ std::unique_ptr<Stmt> Parser::ifStatement() {
             else_branch = block();
         }
     }
-    return std::make_unique<IfStmt>(std::move(condition), std::move(then_branch), std::move(else_branch));
+    return makeNode<IfStmt>(std::move(condition), std::move(then_branch), std::move(else_branch));
 }
 
 // ─── Loop statement ──────────────────────────────────────────────────────────
@@ -226,7 +225,7 @@ std::unique_ptr<Stmt> Parser::loopStatement() {
     if (check(TOKEN_LBRACE)) {
         consume(TOKEN_LBRACE, "");
         auto body = block();
-        return std::make_unique<InfiniteLoopStmt>(std::move(body));
+        return makeNode<InfiniteLoopStmt>(std::move(body));
     }
 
     consume(TOKEN_LPAREN, "Expected '(' after 'loop'.");
@@ -242,7 +241,7 @@ std::unique_ptr<Stmt> Parser::loopStatement() {
         consume(TOKEN_RPAREN, "Expected ')' after range end.");
         consume(TOKEN_LBRACE,  "Expected '{' to open loop body.");
         auto body = block();
-        return std::make_unique<ForRangeStmt>(var_name, std::move(start), std::move(end_expr), std::move(body));
+        return makeNode<ForRangeStmt>(var_name, std::move(start), std::move(end_expr), std::move(body));
     }
 
     // loop (item in collection) — foreach
@@ -254,7 +253,7 @@ std::unique_ptr<Stmt> Parser::loopStatement() {
         consume(TOKEN_RPAREN, "Expected ')' after loop collection.");
         consume(TOKEN_LBRACE,  "Expected '{' to open loop body.");
         auto body = block();
-        return std::make_unique<ForEachStmt>(var_name, std::move(container), std::move(body));
+        return makeNode<ForEachStmt>(var_name, std::move(container), std::move(body));
     }
 
     // loop (condition) — while
@@ -262,15 +261,15 @@ std::unique_ptr<Stmt> Parser::loopStatement() {
     consume(TOKEN_RPAREN, "Expected ')' after loop condition.");
     consume(TOKEN_LBRACE,  "Expected '{' to open loop body.");
     auto body = block();
-    return std::make_unique<WhileStmt>(std::move(cond), std::move(body));
+    return makeNode<WhileStmt>(std::move(cond), std::move(body));
 }
 
 // ─── Return / Import / TryCatch / Throw ──────────────────────────────────────
 std::unique_ptr<Stmt> Parser::returnStatement() {
     if (!check(TOKEN_EOF) && !check(TOKEN_RBRACE) && !check(TOKEN_SEMICOLON)) {
-        return std::make_unique<ReturnStmt>(expression());
+        return makeNode<ReturnStmt>(expression());
     }
-    return std::make_unique<ReturnStmt>(nullptr);
+    return makeNode<ReturnStmt>(nullptr);
 }
 
 std::unique_ptr<Stmt> Parser::importStatement() {
@@ -298,7 +297,7 @@ std::unique_ptr<Stmt> Parser::importStatement() {
         auto blk = p.parse();
         if (blk) resolved = std::move(blk->statements);
     }
-    return std::make_unique<ImportStmt>(path, std::move(resolved));
+    return makeNode<ImportStmt>(path, std::move(resolved));
 }
 
 std::unique_ptr<Stmt> Parser::tryCatchStatement() {
@@ -321,12 +320,12 @@ std::unique_ptr<Stmt> Parser::tryCatchStatement() {
         finally_block = block();
     }
 
-    return std::make_unique<TryCatchStmt>(
+    return makeNode<TryCatchStmt>(
         std::move(try_block), catch_var, std::move(catch_block), std::move(finally_block));
 }
 
 std::unique_ptr<Stmt> Parser::throwStatement() {
-    return std::make_unique<ThrowStmt>(expression());
+    return makeNode<ThrowStmt>(expression());
 }
 
 std::unique_ptr<Stmt> Parser::expressionStatement() {
@@ -339,11 +338,11 @@ std::unique_ptr<Stmt> Parser::expressionStatement() {
         match(TOKEN_OR_ASSIGN)  || match(TOKEN_XOR_ASSIGN)) {
         Token op = previous();
         auto rhs = expression();
-        return std::make_unique<AssignStmt>(std::move(expr), op.lexeme, std::move(rhs));
+        return makeNode<AssignStmt>(std::move(expr), op.lexeme, std::move(rhs));
     }
 
     match(TOKEN_SEMICOLON); // optional semicolon
-    return std::make_unique<ExprStmt>(std::move(expr));
+    return makeNode<ExprStmt>(std::move(expr));
 }
 
 // ─── Expression parsers (Pratt) ───────────────────────────────────────────────
@@ -386,28 +385,28 @@ std::unique_ptr<Expr> Parser::prefixExpr() {
     switch (t.type) {
         // ── Literal values ─────────────────────────────────────────────────
         case TOKEN_INT:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_INT, t.lexeme);
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_INT, t.lexeme);
         case TOKEN_DOUBLE:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_DOUBLE, t.lexeme);
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_DOUBLE, t.lexeme);
         case TOKEN_STRING:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_STRING, t.lexeme);
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_STRING, t.lexeme);
         case TOKEN_TEMPLATE:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_TEMPLATE, t.lexeme);
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_TEMPLATE, t.lexeme);
         case TOKEN_NULL:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_NULL, "null");
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_NULL, "null");
         case TOKEN_TRUE:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_BOOL, "true");
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_BOOL, "true");
         case TOKEN_FALSE:
-            return std::make_unique<LiteralExpr>(LiteralExpr::LIT_BOOL, "false");
+            return makeNode<LiteralExpr>(LiteralExpr::LIT_BOOL, "false");
 
         // ── self ──────────────────────────────────────────────────────────
         case TOKEN_SELF:
-            return std::make_unique<IdentifierExpr>("self");
+            return makeNode<IdentifierExpr>("self");
 
         // ── super ─────────────────────────────────────────────────────────
         case TOKEN_SUPER: {
             // super(args...) — compile as __super_init__(self, args...)
-            return std::make_unique<IdentifierExpr>("__super__");
+            return makeNode<IdentifierExpr>("__super__");
         }
 
         // ── new ───────────────────────────────────────────────────────────
@@ -419,13 +418,13 @@ std::unique_ptr<Expr> Parser::prefixExpr() {
                 do { args.push_back(expression()); } while (match(TOKEN_COMMA));
             }
             consume(TOKEN_RPAREN, "Expected ')' after arguments.");
-            return std::make_unique<NewExpr>(cls.lexeme, std::move(args));
+            return makeNode<NewExpr>(cls.lexeme, std::move(args));
         }
 
         // ── typeof ────────────────────────────────────────────────────────
         case TOKEN_TYPEOF: {
             auto expr = expression(PREC_UNARY);
-            return std::make_unique<TypeofExpr>(std::move(expr));
+            return makeNode<TypeofExpr>(std::move(expr));
         }
 
         // ── Lambda / function ─────────────────────────────────────────────
@@ -435,7 +434,7 @@ std::unique_ptr<Expr> Parser::prefixExpr() {
         // ── await ─────────────────────────────────────────────────────────
         case TOKEN_AWAIT: {
             auto expr = expression(PREC_UNARY);
-            return std::make_unique<AwaitExpr>(std::move(expr));
+            return makeNode<AwaitExpr>(std::move(expr));
         }
 
         // ── async lambda ──────────────────────────────────────────────────
@@ -457,12 +456,12 @@ std::unique_ptr<Expr> Parser::prefixExpr() {
                 } else {
                     auto expr = expression();
                     std::vector<std::unique_ptr<Stmt>> stmts;
-                    stmts.push_back(std::make_unique<ReturnStmt>(std::move(expr)));
-                    body = std::make_unique<BlockStmt>(std::move(stmts));
+                    stmts.push_back(makeNode<ReturnStmt>(std::move(expr)));
+                    body = makeNode<BlockStmt>(std::move(stmts));
                 }
-                return std::make_unique<LambdaExpr>(args, std::move(body), true);
+                return makeNode<LambdaExpr>(args, std::move(body), true);
             }
-            return std::make_unique<IdentifierExpr>("async");
+            return makeNode<IdentifierExpr>("async");
         }
 
         // ── Unary operators ───────────────────────────────────────────────
@@ -470,12 +469,12 @@ std::unique_ptr<Expr> Parser::prefixExpr() {
         case TOKEN_MINUS:
         case TOKEN_NOT: {
             auto rhs = expression(PREC_UNARY);
-            return std::make_unique<UnaryExpr>(t.lexeme, std::move(rhs));
+            return makeNode<UnaryExpr>(t.lexeme, std::move(rhs));
         }
         case TOKEN_INC:
         case TOKEN_DEC: {
             auto rhs = expression(PREC_UNARY);
-            return std::make_unique<UnaryExpr>(t.lexeme, std::move(rhs));
+            return makeNode<UnaryExpr>(t.lexeme, std::move(rhs));
         }
 
         // ── Grouping ──────────────────────────────────────────────────────
@@ -512,12 +511,12 @@ std::unique_ptr<Expr> Parser::prefixExpr() {
                 } else {
                     auto expr = expression();
                     std::vector<std::unique_ptr<Stmt>> stmts;
-                    stmts.push_back(std::make_unique<ReturnStmt>(std::move(expr)));
-                    body = std::make_unique<BlockStmt>(std::move(stmts));
+                    stmts.push_back(makeNode<ReturnStmt>(std::move(expr)));
+                    body = makeNode<BlockStmt>(std::move(stmts));
                 }
-                return std::make_unique<LambdaExpr>(args, std::move(body), false);
+                return makeNode<LambdaExpr>(args, std::move(body), false);
             }
-            return std::make_unique<IdentifierExpr>(t.lexeme);
+            return makeNode<IdentifierExpr>(t.lexeme);
         }
 
         default:
@@ -568,13 +567,13 @@ std::unique_ptr<Expr> Parser::infixExpr(std::unique_ptr<Expr> lhs, Precedence pr
                     do { args.push_back(expression()); } while (match(TOKEN_COMMA));
                 }
                 consume(TOKEN_RPAREN, "Expected ')' after method arguments.");
-                auto member_expr = std::make_unique<IdentifierExpr>(member.lexeme);
-                auto dot_expr = std::make_unique<BinaryExpr>(
+                auto member_expr = makeNode<IdentifierExpr>(member.lexeme);
+                auto dot_expr = makeNode<BinaryExpr>(
                     std::move(lhs), ".", std::move(member_expr));
-                return std::make_unique<CallExpr>(std::move(dot_expr), std::move(args));
+                return makeNode<CallExpr>(std::move(dot_expr), std::move(args));
             }
-            return std::make_unique<BinaryExpr>(
-                std::move(lhs), ".", std::make_unique<IdentifierExpr>(member.lexeme));
+            return makeNode<BinaryExpr>(
+                std::move(lhs), ".", makeNode<IdentifierExpr>(member.lexeme));
         }
 
         // ── Function call ─────────────────────────────────────────────────
@@ -604,7 +603,7 @@ std::unique_ptr<Expr> Parser::infixExpr(std::unique_ptr<Expr> lhs, Precedence pr
                             match(TOKEN_COMMA);
                         }
                         consume(TOKEN_RBRACE, "Expected '}' to close match.");
-                        args.push_back(std::make_unique<MatchExpr>(
+                        args.push_back(makeNode<MatchExpr>(
                             std::move(val), std::move(arms), std::move(default_arm)));
                     } else {
                         args.push_back(expression());
@@ -612,7 +611,7 @@ std::unique_ptr<Expr> Parser::infixExpr(std::unique_ptr<Expr> lhs, Precedence pr
                 } while (match(TOKEN_COMMA));
             }
             consume(TOKEN_RPAREN, "Expected ')' after arguments.");
-            return std::make_unique<CallExpr>(std::move(lhs), std::move(args));
+            return makeNode<CallExpr>(std::move(lhs), std::move(args));
         }
 
         // ── Index / list comprehension ────────────────────────────────────
@@ -628,11 +627,11 @@ std::unique_ptr<Expr> Parser::infixExpr(std::unique_ptr<Expr> lhs, Precedence pr
                 std::unique_ptr<Expr> cond;
                 if (match(TOKEN_IF)) cond = expression();
                 consume(TOKEN_RBRACKET, "Expected ']' to close comprehension.");
-                return std::make_unique<ListComprehensionExpr>(
+                return makeNode<ListComprehensionExpr>(
                     std::move(idx_expr), var_n, std::move(container), std::move(cond));
             }
             consume(TOKEN_RBRACKET, "Expected ']' after index.");
-            return std::make_unique<IndexExpr>(std::move(lhs), std::move(idx_expr));
+            return makeNode<IndexExpr>(std::move(lhs), std::move(idx_expr));
         }
 
         // ── Pipe operator ─────────────────────────────────────────────────
@@ -642,23 +641,23 @@ std::unique_ptr<Expr> Parser::infixExpr(std::unique_ptr<Expr> lhs, Precedence pr
                 std::vector<std::unique_ptr<Expr>> new_args;
                 new_args.push_back(std::move(lhs));
                 for (auto& a : call->args) new_args.push_back(std::move(a));
-                return std::make_unique<CallExpr>(std::move(call->callee), std::move(new_args));
+                return makeNode<CallExpr>(std::move(call->callee), std::move(new_args));
             }
             std::vector<std::unique_ptr<Expr>> args;
             args.push_back(std::move(lhs));
-            return std::make_unique<CallExpr>(std::move(rhs), std::move(args));
+            return makeNode<CallExpr>(std::move(rhs), std::move(args));
         }
 
         // ── Postfix ++ / -- ───────────────────────────────────────────────
         case TOKEN_INC:
-            return std::make_unique<UnaryExpr>("++", std::move(lhs), true);
+            return makeNode<UnaryExpr>("++", std::move(lhs), true);
         case TOKEN_DEC:
-            return std::make_unique<UnaryExpr>("--", std::move(lhs), true);
+            return makeNode<UnaryExpr>("--", std::move(lhs), true);
 
         // ── Binary operators ──────────────────────────────────────────────
         default: {
             auto rhs = expression(prec);
-            return std::make_unique<BinaryExpr>(std::move(lhs), t.lexeme, std::move(rhs));
+            return makeNode<BinaryExpr>(std::move(lhs), t.lexeme, std::move(rhs));
         }
     }
 }
@@ -678,7 +677,7 @@ std::unique_ptr<Expr> Parser::arrayLiteral() {
             std::unique_ptr<Expr> cond;
             if (match(TOKEN_IF)) cond = expression();
             consume(TOKEN_RBRACKET, "Expected ']' to close comprehension.");
-            return std::make_unique<ListComprehensionExpr>(
+            return makeNode<ListComprehensionExpr>(
                 std::move(first), var_n, std::move(container), std::move(cond));
         }
         // Normal array
@@ -689,10 +688,10 @@ std::unique_ptr<Expr> Parser::arrayLiteral() {
         }
         match(TOKEN_COMMA); // trailing comma
         consume(TOKEN_RBRACKET, "Expected ']' after array elements.");
-        return std::make_unique<ArrayLiteralExpr>(std::move(elems));
+        return makeNode<ArrayLiteralExpr>(std::move(elems));
     }
     consume(TOKEN_RBRACKET, "Expected ']'.");
-    return std::make_unique<ArrayLiteralExpr>(std::vector<std::unique_ptr<Expr>>{});
+    return makeNode<ArrayLiteralExpr>(std::vector<std::unique_ptr<Expr>>{});
 }
 
 std::unique_ptr<Expr> Parser::objectLiteral() {
@@ -710,7 +709,7 @@ std::unique_ptr<Expr> Parser::objectLiteral() {
         if (!match(TOKEN_COMMA)) break;
     }
     consume(TOKEN_RBRACE, "Expected '}' to close object literal.");
-    return std::make_unique<ObjectLiteralExpr>(std::move(props));
+    return makeNode<ObjectLiteralExpr>(std::move(props));
 }
 
 // ─── Lambda expression ────────────────────────────────────────────────────────
@@ -732,16 +731,16 @@ std::unique_ptr<Expr> Parser::lambdaExpression(bool is_async) {
         if (check(TOKEN_LBRACE)) {
             advance();
             auto body = block();
-            return std::make_unique<LambdaExpr>(args, std::move(body), is_async);
+            return makeNode<LambdaExpr>(args, std::move(body), is_async);
         }
         auto expr = expression();
         std::vector<std::unique_ptr<Stmt>> stmts;
-        stmts.push_back(std::make_unique<ReturnStmt>(std::move(expr)));
-        return std::make_unique<LambdaExpr>(
-            args, std::make_unique<BlockStmt>(std::move(stmts)), is_async);
+        stmts.push_back(makeNode<ReturnStmt>(std::move(expr)));
+        return makeNode<LambdaExpr>(
+            args, makeNode<BlockStmt>(std::move(stmts)), is_async);
     }
 
     consume(TOKEN_LBRACE, "Expected '{' to open lambda body.");
     auto body = block();
-    return std::make_unique<LambdaExpr>(args, std::move(body), is_async);
+    return makeNode<LambdaExpr>(args, std::move(body), is_async);
 }
